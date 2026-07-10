@@ -1,0 +1,5 @@
+# qgb 揮発出力 (evidence はコミット対象、artifacts は揮発)
+.quality-system/artifacts/
+
+# Python venv (qgb CLI 用)
+.venv/
