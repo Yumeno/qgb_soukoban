@@ -65,7 +65,7 @@ command authoring protocol(スキル §6.5)+ Node checklist(design-stages §5.5)
 | stage | command (案) | 期待 |
 |---|---|---|
 | S1-static | `node tools\check-syntax.mjs` (src/ と tools/ の全 .js/.mjs の構文検査。import 解決・実行時 API は対象外) | exit 0 |
-| S2-unit | `node --test tests/` | exit 0(全 pass) |
+| S2-unit | `node --test`(引数なし。この環境では `node --test tests/` のディレクトリ指定が ERR_MODULE_NOT_FOUND になるため、組込の自動検出 = `tests/**/*.test.mjs` を使う) | exit 0(全 pass) |
 | S3-solvability | `node tools\verify-stages.mjs --all` | exit 0 + per-stage 結果表を stdout(= stage log)に出力 |
 | S4-artifact | `node tools\check-artifacts.mjs` — ①index.html の script/link 参照の存在 ②相対 import graph の解決 ③**層分離検査: src/core が src/ui・document・window・localStorage を参照しないこと**(依存方向は ui→core のみ。Codex 指摘) | exit 0 |
 

@@ -124,3 +124,60 @@ test('B-07: 開始時点で全箱がゴール上だと already_solved で不合�
   assert.equal(result.ok, false);
   assert.ok(result.errors.some((e) => e.code === 'already_solved'));
 });
+
+// B-08: 行長不一致の盤面は右側パディングで矩形化されパース成功
+test('B-08: 行長不一致の盤面は右側を床でパディングして矩形化しパース成功する', () => {
+  const text = [
+    '#######',
+    '#@ $ .#',
+    '###',
+  ].join('\n');
+  const board = parseBoard(text);
+  assert.equal(board.width, 7);
+  assert.equal(board.height, 3);
+  // パディングされたマスは床(壁でも箱でもゴールでもない)
+  const paddedIdx = 2 * 7 + 5; // 3行目の右側
+  assert.ok(!board.walls.has(paddedIdx));
+  assert.ok(!board.boxes.has(paddedIdx));
+  assert.ok(!board.goals.has(paddedIdx));
+  // 往復は正規化後表現と一致(行末空白は除去されるので元テキストに戻る)
+  assert.equal(serializeBoard(board), text);
+});
+
+test('B-08: 空行を含む盤面は即エラー', () => {
+  const text = [
+    '#####',
+    '',
+    '#####',
+  ].join('\n');
+  assert.throws(() => parseBoard(text));
+});
+
+// B-09: プレイヤーから到達不能な位置に箱またはゴールがあると不合格
+test('B-09: プレイヤーから到達不能な箱・ゴールは unreachable_entity で不合格', () => {
+  // 壁で仕切られた右の部屋に箱とゴール。全体は壁で閉じている(not_enclosed ではない)
+  const text = [
+    '########',
+    '#@  #$ #',
+    '#   #..#',
+    '#   #$ #',
+    '########',
+  ].join('\n');
+  const board = parseBoard(text);
+  const result = validateBoard(board);
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.some((e) => e.code === 'unreachable_entity'));
+  // 独立性: 壁で閉じているので not_enclosed は出ない
+  assert.ok(!result.errors.some((e) => e.code === 'not_enclosed'));
+});
+
+test('B-09: 全ての箱・ゴールがプレイヤーから到達可能なら unreachable_entity は出ない', () => {
+  const text = [
+    '#######',
+    '#@ $ .#',
+    '#######',
+  ].join('\n');
+  const board = parseBoard(text);
+  const result = validateBoard(board);
+  assert.ok(!result.errors.some((e) => e.code === 'unreachable_entity'));
+});

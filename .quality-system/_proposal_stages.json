@@ -1,0 +1,72 @@
+{
+  "schema_version": "1.0",
+  "proposal_type": "policy_stages",
+  "source_metadata": {
+    "generator": "claude-code",
+    "basis": [
+      {
+        "type": "project_context",
+        "ref": ".quality-system/project-context.json#purpose",
+        "rationale": "TDD (node:test) の検査を契約化する S2 を中核に、対象データ (ステージ) の可解性という本プロジェクト固有の中核保証を S3 として独立させた"
+      },
+      {
+        "type": "design_doc",
+        "ref": "docs/qgb-design.md#2",
+        "rationale": "4 段階構成と採らなかった案 (S2/S3 統合案・manual_check 追加案・8 段階分割案) の理由を記載。S3 独立の理由: per-stage 検証結果表を stage log に残す独立証跡としての価値 (P7)"
+      },
+      {
+        "type": "external_review",
+        "ref": "Codex CLI second opinion 2026-07-11",
+        "rationale": "S1 は構文検査に限定、S4 は参照整合+層分離 (ui→core 一方向) 検査と責務を明確化。REQ-SOLV の全称主張を排し構成的保証+固定シード代表集合検査に限定"
+      },
+      {
+        "type": "philosophy",
+        "ref": "P10",
+        "rationale": "固定階層を強制せず対象系 (ブラウザゲーム+検証スクリプト) に合わせ 4 段階とした (推奨レンジ 3〜7 内)"
+      }
+    ],
+    "runtime_checklist": {
+      "runtime": "Node.js v22.16.0 (Windows 11, PATH 解決)",
+      "script_encoding": "UTF-8 BOM なし / 改行 LF",
+      "module_system": ".mjs 拡張子で ESM 明示",
+      "stdout_encoding": "Node 18+ 既定 UTF-8。検査スクリプト出力は ASCII 英語を基本とし mojibake 余地を最小化",
+      "argv": "node <script.mjs> 形式で完全明示。テストランナーは node --test (引数なし自動検出。tests/ ディレクトリ指定は本環境で ERR_MODULE_NOT_FOUND のため不使用)",
+      "exit_code": "検査スクリプトは process.exit(0/1) を明示",
+      "mojibake_sentinel": "qgb check 後に stage log の U+FFFD を確認"
+    }
+  },
+  "stages": [
+    {
+      "id": "S1-static",
+      "name": "静的成立",
+      "responsibility": "全 JS モジュールが構文検査に合格する",
+      "depends_on": [],
+      "verification_type": "command",
+      "required_contract_fields": ["command", "expected_exit_code"]
+    },
+    {
+      "id": "S2-unit",
+      "name": "単体テスト",
+      "responsibility": "node:test の全テストが成功する",
+      "depends_on": ["S1-static"],
+      "verification_type": "command",
+      "required_contract_fields": ["command", "expected_exit_code"]
+    },
+    {
+      "id": "S3-solvability",
+      "name": "可解性証跡",
+      "responsibility": "同梱全ステージと固定シード生成ステージの可解性・最短手数整合が独立スクリプトで検証される",
+      "depends_on": ["S2-unit"],
+      "verification_type": "command",
+      "required_contract_fields": ["command", "expected_exit_code"]
+    },
+    {
+      "id": "S4-artifact",
+      "name": "配布物整合",
+      "responsibility": "配布物の参照整合と層分離が静的検査で確認できる",
+      "depends_on": ["S1-static"],
+      "verification_type": "command",
+      "required_contract_fields": ["command", "expected_exit_code"]
+    }
+  ]
+}

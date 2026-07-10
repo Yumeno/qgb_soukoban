@@ -12,6 +12,12 @@ const VALID_CHARS = new Set(['#', ' ', '@', '+', '$', '*', '.']);
  */
 export function parseBoard(text) {
   const lines = text.split('\n');
+  // 空行は即エラー(docs/design.md §4 v0.2)。行長不一致は最長行に合わせて右側を床でパディングして矩形化する。
+  for (let y = 0; y < lines.length; y += 1) {
+    if (lines[y].length === 0) {
+      throw new Error(`parseBoard: 空行が含まれています (行 ${y + 1})`);
+    }
+  }
   const width = lines.reduce((max, line) => Math.max(max, line.length), 0);
   const height = lines.length;
 
@@ -137,9 +143,26 @@ export function validateBoard(board) {
   }
 
   // 3. 全ての箱・ゴール・プレイヤーが壁で囲まれた領域内にある (flood fill で検査)
-  const enclosed = checkEnclosed(width, height, walls, goals, boxes, player);
-  if (!enclosed) {
+  const flood = checkEnclosed(width, height, walls, goals, boxes, player);
+  if (!flood.enclosed) {
     errors.push({ code: 'not_enclosed', message: '盤面が壁で閉じられていません(領域が外周に漏れています)' });
+  }
+
+  // 3b. プレイヤーから到達可能な連結床領域に全ての箱・ゴールがあるか (not_enclosed とは独立の検査)
+  if (player !== null && player !== undefined) {
+    const unreachable = [];
+    for (const b of boxes) {
+      if (!flood.visited.has(b)) unreachable.push(`箱@${b}`);
+    }
+    for (const g of goals) {
+      if (!flood.visited.has(g)) unreachable.push(`ゴール@${g}`);
+    }
+    if (unreachable.length > 0) {
+      errors.push({
+        code: 'unreachable_entity',
+        message: `プレイヤーから到達できない箱・ゴールがあります: ${unreachable.join(', ')}`,
+      });
+    }
   }
 
   // 5. 既に全箱がゴール上(開始即クリア)の面は不正
@@ -171,13 +194,16 @@ function checkEnclosed(width, height, walls, goals, boxes, player) {
     // プレイヤーがいない場合は起点が取れないため、箱やゴールを起点にする。
     const seedCandidates = [...boxes, ...goals];
     if (seedCandidates.length === 0) {
-      return true; // 検証対象がなければ enclosed 扱い(他のエラーで既に不合格になる)
+      return { enclosed: true, visited: new Set() }; // 検証対象がなければ enclosed 扱い(他のエラーで既に不合格になる)
     }
     return floodFromSeeds(width, height, walls, seedCandidates);
   }
   return floodFromSeeds(width, height, walls, [player]);
 }
 
+/**
+ * @returns {{enclosed: boolean, visited: Set<number>}} visited はシードから到達可能な非壁マスの集合
+ */
 function floodFromSeeds(width, height, walls, seeds) {
   const visited = new Set();
   const stack = [...seeds];
@@ -219,5 +245,5 @@ function floodFromSeeds(width, height, walls, seeds) {
     }
   }
 
-  return !leaked;
+  return { enclosed: !leaked, visited };
 }

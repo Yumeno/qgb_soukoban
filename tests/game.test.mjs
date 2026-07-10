@@ -168,6 +168,53 @@ test('G-10: 不発移動はログに記録されない', () => {
   assert.equal(game.moves, 1);
 });
 
+// G-11: 勝利後は move だけでなく undo も不発。reset のみ有効
+test('G-11: 勝利後は move も undo も不発(状態不変)、reset のみ有効', () => {
+  const text = [
+    '######',
+    '#@$.#',
+    '######',
+  ].join('\n');
+  const board = parseBoard(text);
+  const game = new Game(board);
+  game.move('R'); // 箱をゴールへ → 勝利
+  assert.equal(game.won, true);
+  const movesAfterWin = game.moves;
+  const logAfterWin = game.log;
+  const playerAfterWin = game.board.player;
+
+  // undo も不発
+  const undone = game.undo();
+  assert.equal(undone, false);
+  assert.equal(game.won, true);
+  assert.equal(game.moves, movesAfterWin);
+  assert.equal(game.log, logAfterWin);
+  assert.equal(game.board.player, playerAfterWin);
+
+  // reset のみ有効
+  game.reset();
+  assert.equal(game.won, false);
+  assert.equal(game.moves, 0);
+  assert.equal(game.log, '');
+});
+
+// G-12: undo 後に別の手を進めた場合、log は分岐履歴を残さない
+test('G-12: undo後に別の手を進めるとログは初期状態から現在状態への手順のみを保持する', () => {
+  const game = new Game(makeBoard());
+  game.move('R'); // log: 'R'
+  game.move('L'); // log: 'RL'
+  game.undo();    // log: 'R' ('L' が除去される)
+  game.move('R'); // log: 'RR' (分岐した 'L' の痕跡は残らない)
+  assert.equal(game.log, 'RR');
+  assert.equal(game.moves, 2);
+
+  // ログを初期状態から適用すると現在状態を再現できる(= ログは再現手順である)
+  const replayGame = new Game(makeBoard());
+  replayGame.applyMoves(game.log);
+  assert.equal(replayGame.board.player, game.board.player);
+  assert.deepEqual([...replayGame.board.boxes].sort(), [...game.board.boxes].sort());
+});
+
 // Game.board は外部から書き換えても内部状態に影響しないスナップショットであること
 test('Game.board はスナップショットであり外部変更が内部状態に影響しない', () => {
   const game = new Game(makeBoard());

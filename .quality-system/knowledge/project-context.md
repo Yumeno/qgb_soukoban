@@ -31,7 +31,8 @@ qgb (quality-gate-builder) の機械ゲートで担保する。採用判定の�
 - 実装言語: vanilla JS (ES2022, ESM)。ビルド工程なし。
 - 実行環境: Node.js v22.16.0（node:test 組込ランナーを使用）。ブラウザはローカル HTTP
   サーバ経由で ESM を読み込む（`file://` は CORS 制限で不可）。
-- テスト: `node --test tests/` のみで完結させる。
+- テスト: `node --test`（引数なしの自動検出）のみで完結させる。本環境では `node --test tests/` の
+  ディレクトリ指定が ERR_MODULE_NOT_FOUND になるため使わない。
 
 ### 採用しない方式とその理由
 

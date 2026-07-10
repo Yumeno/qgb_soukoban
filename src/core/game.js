@@ -115,9 +115,13 @@ export class Game {
 
   /**
    * 直前の1歩を巻き戻す。多段可。
+   * 勝利後は不発(状態不変)。reset のみ有効 (docs/design.md §5 v0.2)。
    * @returns {boolean} 戻せたか
    */
   undo() {
+    if (this._won) {
+      return false;
+    }
     if (this._history.length === 0) {
       return false;
     }
