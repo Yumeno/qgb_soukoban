@@ -1,6 +1,6 @@
 # qgb 品質ゲート設計書 (qgb_soukoban)
 
-- 版: v0.1 (原案 / Codex セカンドオピニオン前)
+- 版: v0.2 (Codex セカンドオピニオン反映済み 2026-07-11)
 - 関連: [design.md](design.md) / [test-design.md](test-design.md)
 - 準拠: qgb スキル v0.1.5 / 段階設計パターン B (proposal/adopt 経路)
 
@@ -24,10 +24,10 @@ S1-static ──→ S2-unit ──→ S3-solvability
 
 | id | name | responsibility (一文) | verification_type | depends_on |
 |---|---|---|---|---|
-| S1-static | 静的成立 | 全 JS モジュールが構文エラーなく Node で読み込める | command | [] |
+| S1-static | 静的成立 | 全 JS モジュールが構文検査に合格する | command | [] |
 | S2-unit | 単体テスト | node:test の全テストが成功する | command | [S1-static] |
 | S3-solvability | 可解性証跡 | 同梱全ステージと固定シード生成ステージの可解性・最短手数整合が独立スクリプトで検証される | command | [S2-unit] |
-| S4-artifact | 配布物整合 | index.html が参照する資産がすべて存在し解決できる | command | [S1-static] |
+| S4-artifact | 配布物整合 | 配布物の参照整合と層分離が静的検査で確認できる | command | [S1-static] |
 
 ### 設計判断(採らなかった案と理由)
 
@@ -40,10 +40,12 @@ S1-static ──→ S2-unit ──→ S3-solvability
 | REQ ID | 守りたい約束 | stages |
 |---|---|---|
 | REQ-CORE-001 | 倉庫番の標準ルール(移動・押し・undo・勝利・リプレイ)が正しく動く | S1-static, S2-unit |
-| REQ-SOLV-001 | プレイヤーに提供される全ステージ(手作り 10 面 + 生成面)がクリア可能である | S1-static, S2-unit, S3-solvability |
+| REQ-SOLV-001 | 同梱 10 面は全数ソルバー検証でクリア可能であり、生成面は合法 push の逆写像による構成的保証と固定シード代表集合の回帰検査で担保される | S1-static, S2-unit, S3-solvability |
 | REQ-DIST-001 | 配布物一式が欠損なく起動可能な形で揃っている | S1-static, S4-artifact |
 
 REQ 本文 (`.md`) には acceptance criteria として test-design.md のケース ID を参照で紐付ける。
+
+注(Codex 指摘): 「全生成面がクリア可能」という全称主張は qgb の機械検査では証明できない。機械検査が示すのは (i) 固定シード代表集合の全数通過、(ii) 構成的保証の実装(pull = 合法 push の逆写像)が代表集合上で forward 解を実際に再生できること、の 2 点であり、REQ 文言・gate.json の解釈もこれに限定する(P5 と同型の限定)。
 
 ## 4. contract 設計 (verification_type=command / Node ランタイム規律)
 
@@ -62,10 +64,10 @@ command authoring protocol(スキル §6.5)+ Node checklist(design-stages §5.5)
 
 | stage | command (案) | 期待 |
 |---|---|---|
-| S1-static | `node tools\check-syntax.mjs` (src/ と tools/ の全 .js/.mjs を `--check` 相当で検査) | exit 0 |
+| S1-static | `node tools\check-syntax.mjs` (src/ と tools/ の全 .js/.mjs の構文検査。import 解決・実行時 API は対象外) | exit 0 |
 | S2-unit | `node --test tests/` | exit 0(全 pass) |
 | S3-solvability | `node tools\verify-stages.mjs --all` | exit 0 + per-stage 結果表を stdout(= stage log)に出力 |
-| S4-artifact | `node tools\check-artifacts.mjs` (index.html の script/link 参照と core→ui import 解決を検査) | exit 0 |
+| S4-artifact | `node tools\check-artifacts.mjs` — ①index.html の script/link 参照の存在 ②相対 import graph の解決 ③**層分離検査: src/core が src/ui・document・window・localStorage を参照しないこと**(依存方向は ui→core のみ。Codex 指摘) | exit 0 |
 
 timeout_seconds: S3 は余裕を持って 300、他は 120(既定)。
 

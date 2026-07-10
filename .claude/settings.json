@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Bash(node *)",
+      "Bash(git *)",
+      "Bash(codex --version)",
+      "Bash(codex exec *)",
+      "Bash(mkdir *)",
+      "Bash(.venv/Scripts/python.exe *)",
+      "PowerShell(node *)",
+      "PowerShell(git *)",
+      "PowerShell(.venv\\Scripts\\python.exe *)"
+    ]
+  }
+}

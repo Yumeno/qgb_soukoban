@@ -1,0 +1,11 @@
+{
+  "schema_version": "1.0",
+  "project": {
+    "name": "qgb_soukoban"
+  },
+  "qgb": {
+    "core_language": "python",
+    "version": "0.1.5"
+  },
+  "commands": {}
+}
