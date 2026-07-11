@@ -152,6 +152,55 @@ h2 {
   transform: rotate(-10deg);
 }
 
+.rank-badge,
+.rank-stamp {
+  display: inline-grid;
+  place-items: center;
+  border: 3px solid currentColor;
+  border-radius: 50%;
+  color: var(--rank-color);
+  font-weight: 900;
+  line-height: 1;
+}
+
+.rank-badge {
+  position: absolute;
+  top: 50px;
+  right: 17px;
+  width: 34px;
+  height: 34px;
+  font-size: 1rem;
+  transform: rotate(8deg);
+}
+
+.rank-stamp {
+  position: absolute;
+  top: 76px;
+  left: 24px;
+  width: 62px;
+  height: 62px;
+  background: color-mix(in srgb, var(--color-paper) 86%, transparent);
+  font-size: 1.75rem;
+  transform: rotate(9deg);
+  animation: stamp-in 200ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.rank-s {
+  --rank-color: var(--color-stamp);
+}
+
+.rank-a {
+  --rank-color: var(--color-amber);
+}
+
+.rank-b {
+  --rank-color: var(--color-green);
+}
+
+.rank-c {
+  --rank-color: var(--color-steel);
+}
+
 .random-card {
   grid-column: 1 / -1;
   display: flex;
@@ -383,5 +432,10 @@ select {
   .stamp {
     opacity: 1;
     transform: scale(1) rotate(-12deg);
+  }
+
+  .rank-stamp {
+    opacity: 1;
+    transform: rotate(9deg);
   }
 }

@@ -40,7 +40,7 @@ test('T-04: difficulty curve is monotonic by score', () => {
   assert.equal(scores.at(-1), Math.max(...scores), 'stage10 should be hardest');
 
   for (let i = 1; i < scores.length; i += 1) {
-    assert.ok(scores[i] >= scores[i - 1], `score curve: ${scores.join(',')}`);
+    assert.ok(scores[i] > scores[i - 1], `score curve: ${scores.join(',')}`);
   }
 });
 
@@ -98,6 +98,40 @@ test('T-10: stage10 requires a strong dependency structure', () => {
   );
 });
 
+test('T-11: embedded stages have unique structural signatures', () => {
+  const signatures = new Set();
+  for (const stage of STAGES) {
+    const board = boardFor(stage);
+    const signature = structuralSignature(stage, board);
+    assert.equal(signatures.has(signature), false, `${stage.id}: duplicate signature ${signature}`);
+    signatures.add(signature);
+  }
+});
+
+test('T-12: policies are dispersed', () => {
+  const counts = new Map();
+  let upperScatteredCount = 0;
+  for (const [index, stage] of STAGES.entries()) {
+    const policy = policyKey(stage);
+    if (policy === 'scattered') {
+      if (index >= 5) {
+        upperScatteredCount += 1;
+        assert.ok(upperScatteredCount <= 1, `scattered in stage06-stage10: count=${upperScatteredCount}`);
+      }
+    } else {
+      const count = (counts.get(policy) ?? 0) + 1;
+      assert.ok(count <= 2, `${policy}: count=${count}`);
+      assert.notEqual(policy, policyKey(STAGES[index - 1]), `${stage.id}: adjacent policy ${policy}`);
+      counts.set(policy, count);
+    }
+    if (index >= 6) {
+      const previous = STAGES[index - 1];
+      assert.notEqual(policy, policyKey(previous), `${stage.id}: adjacent upper policy ${policy}`);
+      assert.notEqual(upperFeelSignature(stage), upperFeelSignature(previous), `${stage.id}: adjacent upper feel ${upperFeelSignature(stage)}`);
+    }
+  }
+});
+
 for (const stage of STAGES) {
   test(`embedded solver solution for ${stage.id} replays through Game.applyMoves`, { timeout: 5000 }, () => {
     const board = boardFor(stage);
@@ -107,4 +141,33 @@ for (const stage of STAGES) {
     assert.equal(game.won, true, `${stage.id}: replay won`);
     assert.equal(game.log, solved.solution, `${stage.id}: replay log`);
   });
+}
+
+function structuralSignature(stage, board) {
+  const metrics = stage.metrics;
+  return [
+    metrics.minPushes,
+    metrics.boxChanges,
+    metrics.maxPhiBarrier,
+    metrics.dependencyCount,
+    metrics.dependencyDepth,
+    metrics.mutualDependency,
+    metrics.minGoalPushDegree,
+    board.width,
+    board.height,
+    board.boxes.size,
+  ].join('|');
+}
+
+function policyKey(stage) {
+  return typeof stage.policy === 'string' && stage.policy.length > 0
+    ? stage.policy
+    : 'scattered';
+}
+
+function upperFeelSignature(stage) {
+  return [
+    boardFor(stage).boxes.size,
+    stage.metrics.mutualDependency,
+  ].join('|');
 }

@@ -12,11 +12,11 @@
 |---|---|
 | REQ ID | REQ-DIST-001 |
 | Phase | verify |
-| 実行日時 (UTC) | 2026-07-11T130047Z |
-| 実行日時 (RFC3339) | 2026-07-11T13:00:47Z |
+| 実行日時 (UTC) | 2026-07-11T155636Z |
+| 実行日時 (RFC3339) | 2026-07-11T15:56:36Z |
 | run_id | `r0001` |
 | Runner | qgb 0.1.5 |
-| run_dir | `.quality-system/artifacts/REQ-DIST-001/runs/2026-07-11T130047Z-r0001` |
+| run_dir | `.quality-system/artifacts/REQ-DIST-001/runs/2026-07-11T155636Z-r0001` |
 | curated_latest_dir | `.quality-system/evidence/REQ-DIST-001/latest` |
 
 ## 段階別結果

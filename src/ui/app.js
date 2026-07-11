@@ -1,6 +1,7 @@
 import { parseBoard } from '../core/board.js';
 import { Game } from '../core/game.js';
 import { generateStage, DIFFICULTY_PRESETS } from '../core/generator.js';
+import { computeRank } from '../core/rank.js';
 import { SEED_POOLS } from '../core/seedpools.js';
 import { STAGES } from '../core/stages.js';
 import { renderBoard } from './render.js';
@@ -68,7 +69,11 @@ function stageGrid() {
     card.append(textEl('div', 'card-title', `${numberLabel(index + 1)} ${stage.name}`));
     card.append(textEl('div', 'card-meta', `最短 ${stage.minMoves} 手`));
     if (record?.cleared) {
+      const rank = safeRank(record.bestMoves, stage.minMoves);
       card.append(textEl('div', 'stamp-small', '検印'));
+      if (rank) {
+        card.append(rankBadge(rank));
+      }
       card.append(textEl('div', 'card-meta', `自己ベスト ${record.bestMoves} 手`));
     } else {
       card.append(textEl('div', 'card-meta', '未出荷'));
@@ -260,16 +265,20 @@ function ticket(best) {
 }
 
 function clearOverlay(previousBest) {
+  const rank = computeRank(game.moves, currentStage.minMoves);
   const overlay = document.createElement('div');
   overlay.className = 'overlay';
   const node = document.createElement('div');
   node.className = 'ticket';
   node.append(textEl('h2', '', '出荷伝票'));
   node.append(textEl('div', 'stamp', '出荷完了'));
+  node.append(rankStamp(rank));
   const lines = document.createElement('div');
   lines.className = 'ticket-lines';
   lines.append(ticketRow('STAGE', currentStage.name));
   lines.append(ticketRow('MOVES', `${game.moves} / MIN ${currentStage.minMoves}`));
+  lines.append(ticketRow('RANK', `${rank.grade} / ${rank.label}`));
+  lines.append(ticketRow('NEXT', nextRankText(rank, game.moves)));
   lines.append(ticketRow('BEST', bestResult(previousBest, game.moves)));
   node.append(lines);
   node.append(actions([
@@ -289,6 +298,13 @@ function bestResult(previousBest, moves) {
     return `${moves}`;
   }
   return `${previousBest} -> ${Math.min(previousBest, moves)}`;
+}
+
+function nextRankText(rank, moves) {
+  if (rank.nextGrade === null) {
+    return '最短手数達成!';
+  }
+  return `あと ${moves - rank.nextGrade.maxMoves} 手で ${rank.nextGrade.label}`;
 }
 
 function handleKeydown(event) {
@@ -558,6 +574,26 @@ function buttonCard(extraClass) {
 
 function cardIcon(value) {
   return textEl('div', 'card-icon', value);
+}
+
+function rankBadge(rank) {
+  const badge = textEl('div', `rank-badge rank-${rank.grade.toLowerCase()}`, rank.label);
+  badge.setAttribute('aria-label', `自己ベスト査定 ${rank.grade} ${rank.label}`);
+  return badge;
+}
+
+function rankStamp(rank) {
+  const stamp = textEl('div', `rank-stamp rank-${rank.grade.toLowerCase()}`, rank.label);
+  stamp.setAttribute('aria-label', `査定 ${rank.grade} ${rank.label}`);
+  return stamp;
+}
+
+function safeRank(moves, minMoves) {
+  try {
+    return computeRank(moves, minMoves);
+  } catch {
+    return null;
+  }
 }
 
 function ticketRow(label, value) {

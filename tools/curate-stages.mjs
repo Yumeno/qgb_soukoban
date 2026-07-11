@@ -16,7 +16,7 @@ const SCORE_WEIGHTS = {
   maxPhiBarrier: 5,
   dependencyDepth: 4,
   dependencyCount: 3,
-  mutualDependency: 6,
+  mutualDependency: 15,
   constrainedGoalDegree: 2,
   constrainedGoalDegreeBase: 3,
   ratioPenaltyThreshold: 3,
@@ -24,18 +24,45 @@ const SCORE_WEIGHTS = {
 };
 
 const MASTER_SEEDS = Array.from({ length: 12 }, (_, i) => 0x5A17E000 + i * 0x101);
+const SUPPLEMENTAL_LAYERS = [
+  {
+    width: 9,
+    height: 7,
+    boxCount: 4,
+    pullSteps: 28,
+    minPushesFloor: 5,
+    maxPhiBarrierFloor: 0,
+    wallDensity: 0.04,
+    goalClustering: true,
+    maxAttempts: 40,
+    seedValues: [1258295352],
+  },
+  {
+    width: 9,
+    height: 7,
+    boxCount: 4,
+    pullSteps: 56,
+    minPushesFloor: 8,
+    maxPhiBarrierFloor: 1,
+    wallDensity: 0.08,
+    goalClustering: false,
+    maxAttempts: 240,
+    seedValues: [1258299487],
+  },
+];
+const CURATION_LAYERS = PARAM_LAYERS.concat(SUPPLEMENTAL_LAYERS);
 
 const generated = [];
 const seenBoards = new Set();
 let failures = 0;
-const layerStats = PARAM_LAYERS.map(() => ({
+const layerStats = CURATION_LAYERS.map(() => ({
   generated: 0,
   qualityPass: 0,
   generatorErrors: 0,
 }));
 
-for (let layerIndex = 0; layerIndex < PARAM_LAYERS.length; layerIndex += 1) {
-  const { seedIndexes, seedValues, ...layer } = PARAM_LAYERS[layerIndex];
+for (let layerIndex = 0; layerIndex < CURATION_LAYERS.length; layerIndex += 1) {
+  const { seedIndexes, seedValues, ...layer } = CURATION_LAYERS[layerIndex];
   const seedSource = seedValues ?? seedIndexes ?? MASTER_SEEDS.map((_, index) => index);
   for (const seedEntry of seedSource) {
     const seed = seedValues ? seedEntry : (MASTER_SEEDS[seedEntry] + layerIndex * 0x10000) >>> 0;
@@ -81,11 +108,6 @@ printSummary(generated, selected, failures, layerStats);
 
 function selectStages(candidates) {
   const sorted = [...candidates].sort(compareCandidate);
-  const intro = sorted.find((candidate) => candidate.board.boxes.size === 1);
-  if (!intro) {
-    throw new Error('curate-stages: no one-box intro candidate found');
-  }
-
   const depPool = sorted.filter((candidate) => candidate.metrics.dependencyDepth >= 1);
   const phiDepPool = sorted.filter((candidate) => candidate.metrics.maxPhiBarrier >= 1 && candidate.metrics.dependencyDepth >= 1);
   const stage10Pool = sorted.filter(satisfiesStage10);
@@ -99,84 +121,71 @@ function selectStages(candidates) {
     throw new Error('curate-stages: no stage10 dependency candidate');
   }
 
-  const pickedTexts = new Set();
-  const picks = [];
-  const addPick = (candidate) => {
-    if (pickedTexts.has(candidate.text)) {
-      return false;
-    }
-    picks.push(candidate);
-    pickedTexts.add(candidate.text);
-    return true;
-  };
-
-  const stage10 = stage10Pool.at(-1);
-  const boundedPhiDepPool = phiDepPool.filter((candidate) => candidate.score <= stage10.score);
-  const stage09 = highestDistinct(boundedPhiDepPool, [stage10.text]);
-  const stage08 = highestDistinct(boundedPhiDepPool, [stage10.text, stage09.text]);
-  const boundedDepPool = depPool.filter((candidate) => candidate.score <= Math.min(stage08.score, stage09.score));
-  const stage07 = highestDistinct(boundedDepPool, [stage10.text, stage09.text, stage08.text]);
-  const stage06 = highestDistinct(boundedDepPool, [stage10.text, stage09.text, stage08.text, stage07.text]);
-  const constrainedTail = [stage06, stage07, stage08, stage09].sort(compareCandidate).concat(stage10);
-  const hardFloorScore = constrainedTail[0].score;
-
-  addPick(intro);
-  const tailTexts = new Set(constrainedTail.map((candidate) => candidate.text));
-  const lowPool = sorted.filter((candidate) => candidate.score <= hardFloorScore && candidate.text !== intro.text && !tailTexts.has(candidate.text));
-  const lowTargets = Math.max(0, 5 - picks.length);
-  const lowPicks = spreadPick(lowPool, lowTargets);
-  for (const candidate of lowPicks.sort(compareCandidate)) {
-    addPick(candidate);
-  }
-
-  if (picks.length < 5) {
-    for (const candidate of sorted) {
-      if (picks.length >= 5) {
-        break;
-      }
-      if (candidate.score <= hardFloorScore && !tailTexts.has(candidate.text)) {
-        addPick(candidate);
-      }
-    }
-  }
-  if (picks.length < 5) {
-    throw new Error(`curate-stages: need 5 lower-score picks before constrained tail, got ${picks.length}`);
-  }
-
-  for (const candidate of constrainedTail) {
-    addPick(candidate);
-  }
-
-  if (picks.length < 10) {
-    for (let i = sorted.length - 1; i >= 0 && picks.length < 10; i -= 1) {
-      addPick(sorted[i]);
-    }
-  }
-
-  const finalStages = picks.slice(0, 10);
+  const finalStages = buildDiverseSequence(sorted);
   if (finalStages.length !== 10) {
     throw new Error(`curate-stages: selected ${finalStages.length} stages`);
   }
   for (let i = 1; i < finalStages.length; i += 1) {
-    if (finalStages[i].score < finalStages[i - 1].score) {
-      throw new Error(`curate-stages: selected score curve is not monotonic (${finalStages.map((stage) => roundMetric(stage.score)).join(',')})`);
+    if (finalStages[i].score <= finalStages[i - 1].score) {
+      throw new Error(`curate-stages: selected score curve is not strictly increasing (${finalStages.map((stage) => roundMetric(stage.score)).join(',')})`);
     }
   }
   if (finalStages[0].board.boxes.size !== 1) {
     throw new Error('curate-stages: stage01 is not a one-box intro stage');
   }
+  assertDiversityConstraints(finalStages);
   assertRankConstraints(finalStages);
   return finalStages;
 }
 
-function highestDistinct(pool, usedTexts) {
-  const used = new Set(usedTexts);
-  for (let i = pool.length - 1; i >= 0; i -= 1) {
-    if (!used.has(pool[i].text)) {
-      return pool[i];
+function buildDiverseSequence(sorted) {
+  const pools = Array.from({ length: 10 }, (_, index) => {
+    if (index === 0) {
+      return sorted.filter((candidate) => candidate.board.boxes.size === 1);
     }
+    if (index >= 5 && index <= 6) {
+      return sorted.filter((candidate) => candidate.metrics.dependencyDepth >= 1);
+    }
+    if (index >= 7 && index <= 8) {
+      return sorted.filter((candidate) => candidate.metrics.maxPhiBarrier >= 1 && candidate.metrics.dependencyDepth >= 1);
+    }
+    if (index === 9) {
+      return sorted.filter(satisfiesStage10);
+    }
+    return sorted;
+  });
+
+  const result = visit(0, [], {
+    texts: new Set(),
+    signatures: new Set(),
+    policyCounts: new Map(),
+    upperScatteredCount: 0,
+  });
+  if (result === null) {
+    throw new Error('curate-stages: diversity constraints conflict with rank/score constraints');
   }
-  throw new Error('curate-stages: not enough distinct constrained candidates');
+  return result;
+
+  function visit(index, picks, state) {
+    if (index === pools.length) {
+      return picks;
+    }
+
+    const previous = picks.at(-1);
+    const preferredGap = previous === undefined ? -Infinity : previous.score + 2;
+    const candidates = orderByPreferredGap(pools[index], preferredGap);
+    for (const candidate of candidates) {
+      if (!canAppend(candidate, previous, state, index)) {
+        continue;
+      }
+      const nextState = appendState(candidate, state, index);
+      const result = visit(index + 1, picks.concat(candidate), nextState);
+      if (result !== null) {
+        return result;
+      }
+    }
+    return null;
+  }
 }
 
 function assertRankConstraints(stages) {
@@ -198,7 +207,146 @@ function assertRankConstraints(stages) {
 
 function satisfiesStage10(candidate) {
   const metrics = candidate.metrics;
-  return metrics.dependencyDepth >= 2 || metrics.mutualDependency || metrics.dependencyCount >= 2;
+  return metrics.maxPhiBarrier >= 1
+    && (metrics.dependencyDepth >= 2 || metrics.mutualDependency || metrics.dependencyCount >= 2);
+}
+
+function canAppend(candidate, previous, state, index) {
+  if (previous !== undefined && candidate.score <= previous.score) {
+    return false;
+  }
+  if (state.texts.has(candidate.text) || state.signatures.has(structuralSignature(candidate))) {
+    return false;
+  }
+  const policy = policyKey(candidate);
+  if (policy === 'scattered') {
+    if (index >= 5 && state.upperScatteredCount >= 1) {
+      return false;
+    }
+  } else {
+    if ((state.policyCounts.get(policy) ?? 0) >= 2) {
+      return false;
+    }
+    if (previous !== undefined && policyKey(previous) === policy) {
+      return false;
+    }
+  }
+  if (index >= 6 && previous !== undefined) {
+    if (policyKey(previous) === policy) {
+      return false;
+    }
+    if (upperFeelSignature(previous) === upperFeelSignature(candidate)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function appendState(candidate, state, index) {
+  const next = {
+    texts: new Set(state.texts),
+    signatures: new Set(state.signatures),
+    policyCounts: new Map(state.policyCounts),
+    upperScatteredCount: state.upperScatteredCount,
+  };
+  next.texts.add(candidate.text);
+  next.signatures.add(structuralSignature(candidate));
+  const policy = policyKey(candidate);
+  if (policy === 'scattered') {
+    if (index >= 5) {
+      next.upperScatteredCount += 1;
+    }
+  } else {
+    next.policyCounts.set(policy, (next.policyCounts.get(policy) ?? 0) + 1);
+  }
+  return next;
+}
+
+function orderByPreferredGap(pool, preferredGap) {
+  const preferred = [];
+  const fallback = [];
+  for (const candidate of pool) {
+    if (candidate.score >= preferredGap) {
+      preferred.push(candidate);
+    } else {
+      fallback.push(candidate);
+    }
+  }
+  return preferred.concat(fallback);
+}
+
+function assertDiversityConstraints(stages) {
+  const signatures = new Set();
+  const policyCounts = new Map();
+  let upperScatteredCount = 0;
+  for (const [index, stage] of stages.entries()) {
+    const signature = structuralSignature(stage);
+    if (signatures.has(signature)) {
+      throw new Error(`curate-stages: duplicate structural signature ${signature}`);
+    }
+    signatures.add(signature);
+
+    const policy = policyKey(stage);
+    if (policy === 'scattered') {
+      if (index >= 5) {
+        upperScatteredCount += 1;
+        if (upperScatteredCount > 1) {
+          throw new Error(`curate-stages: scattered selected ${upperScatteredCount} times in stage06-stage10`);
+        }
+      }
+    } else {
+      const count = (policyCounts.get(policy) ?? 0) + 1;
+      if (count > 2) {
+        throw new Error(`curate-stages: policy '${policy}' selected ${count} times`);
+      }
+      if (index > 0 && policyKey(stages[index - 1]) === policy) {
+        throw new Error(`curate-stages: adjacent policy '${policy}'`);
+      }
+      policyCounts.set(policy, count);
+    }
+    if (index >= 6) {
+      const previous = stages[index - 1];
+      if (policyKey(previous) === policy) {
+        throw new Error(`curate-stages: adjacent upper policy '${policy}'`);
+      }
+      if (upperFeelSignature(previous) === upperFeelSignature(stage)) {
+        throw new Error(`curate-stages: adjacent upper feel signature ${upperFeelSignature(stage)}`);
+      }
+    }
+  }
+}
+
+function structuralSignature(stage) {
+  const metrics = stage.metrics;
+  return [
+    metrics.minPushes,
+    metrics.boxChanges,
+    metrics.maxPhiBarrier,
+    metrics.dependencyCount,
+    metrics.dependencyDepth,
+    metrics.mutualDependency,
+    metrics.minGoalPushDegree,
+    stage.board.width,
+    stage.board.height,
+    stage.board.boxes.size,
+  ].join('|');
+}
+
+function policyKey(stage) {
+  if (typeof stage.policy === 'string' && stage.policy.length > 0) {
+    return stage.policy;
+  }
+  if (stage.motif !== null && stage.motif !== undefined) {
+    return `motif:${stage.motif}`;
+  }
+  return 'scattered';
+}
+
+function upperFeelSignature(stage) {
+  return [
+    stage.board.boxes.size,
+    stage.metrics.mutualDependency,
+  ].join('|');
 }
 
 function compareCandidate(a, b) {
@@ -326,7 +474,7 @@ function printLayerStats(stats) {
   console.log('layer generated qualityPass generatorErrors params');
   console.log('----- --------- ----------- --------------- ------------------------------');
   stats.forEach((row, index) => {
-    const { seedIndexes, seedValues, ...layer } = PARAM_LAYERS[index];
+    const { seedIndexes, seedValues, ...layer } = CURATION_LAYERS[index];
     const params = `${layer.width}x${layer.height} boxes=${layer.boxCount} pullSteps=${layer.pullSteps} pushFloor=${layer.minPushesFloor} wallDensity=${layer.wallDensity ?? 0.16} policy=${layer.motif ? `motif:${layer.motif}` : layer.goalClustering ? 'goal-clustered' : 'scattered'}`;
     console.log(`${pad(index, 5)} ${pad(row.generated, 9)} ${pad(row.qualityPass, 11)} ${pad(row.generatorErrors, 15)} ${params}`);
   });

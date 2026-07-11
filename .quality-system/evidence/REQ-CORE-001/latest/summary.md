@@ -12,11 +12,11 @@
 |---|---|
 | REQ ID | REQ-CORE-001 |
 | Phase | verify |
-| 実行日時 (UTC) | 2026-07-11T125237Z |
-| 実行日時 (RFC3339) | 2026-07-11T12:52:37Z |
+| 実行日時 (UTC) | 2026-07-11T154846Z |
+| 実行日時 (RFC3339) | 2026-07-11T15:48:46Z |
 | run_id | `r0001` |
 | Runner | qgb 0.1.5 |
-| run_dir | `.quality-system/artifacts/REQ-CORE-001/runs/2026-07-11T125237Z-r0001` |
+| run_dir | `.quality-system/artifacts/REQ-CORE-001/runs/2026-07-11T154846Z-r0001` |
 | curated_latest_dir | `.quality-system/evidence/REQ-CORE-001/latest` |
 
 ## 段階別結果
