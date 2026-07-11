@@ -1,0 +1,20 @@
+stage_id: S4-artifact
+name: 配布物整合
+verification_type: command
+contract_ref: .quality-system/contracts/REQ-DIST-001/S4-artifact.json
+command: ['node', 'tools\\check-artifacts.mjs']
+expected_exit_code: 0
+timeout_seconds: 120
+resolved cwd: C:\Users\vz7a-\Desktop\qgb_soukoban
+
+--- execution ---
+exit_code: 0
+stdout (full):
+OK asset references
+OK import graph
+OK layer separation
+summary: 3 ok, 0 fail
+
+stderr (full):
+
+result: passed

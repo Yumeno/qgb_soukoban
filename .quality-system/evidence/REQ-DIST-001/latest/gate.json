@@ -1,0 +1,49 @@
+{
+  "schema_version": "1.0",
+  "req_id": "REQ-DIST-001",
+  "timestamp_utc": "2026-07-11T081547Z",
+  "timestamp_rfc3339": "2026-07-11T08:15:47Z",
+  "run_id": "r0001",
+  "phase": "verify",
+  "status": "ALLOW",
+  "failed_stage": "",
+  "decision": {
+    "result": "ALLOW",
+    "meaning": "Defined checks passed. This is not proof of total correctness.",
+    "scope": "Judgement is local to this project's policy/contracts and is not comparable across projects (P11)."
+  },
+  "runner": {
+    "name": "qgb",
+    "version": "0.1.5"
+  },
+  "paths": {
+    "run_dir": ".quality-system/artifacts/REQ-DIST-001/runs/2026-07-11T081547Z-r0001",
+    "curated_latest_dir": ".quality-system/evidence/REQ-DIST-001/latest"
+  },
+  "stages": [
+    {
+      "id": "S1-static",
+      "name": "静的成立",
+      "result": "passed",
+      "verification_type": "command",
+      "exit_code": 0,
+      "contract_ref": ".quality-system/contracts/REQ-DIST-001/S1-static.json",
+      "log_ref": "stages/S1-static.log"
+    },
+    {
+      "id": "S4-artifact",
+      "name": "配布物整合",
+      "result": "passed",
+      "verification_type": "command",
+      "exit_code": 0,
+      "contract_ref": ".quality-system/contracts/REQ-DIST-001/S4-artifact.json",
+      "log_ref": "stages/S4-artifact.log"
+    }
+  ],
+  "basis": [
+    "REQ-DIST-001",
+    "POLICY-default",
+    "CONTRACT-REQ-DIST-001-S1-static",
+    "CONTRACT-REQ-DIST-001-S4-artifact"
+  ]
+}
