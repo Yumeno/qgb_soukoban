@@ -27,6 +27,8 @@ export function computeStageMetrics(board, options = {}) {
   const phiTrace = computePhiTrace(trace.boxesByStep, goals, pullDistances);
   const phiStats = computePhiStats(phiTrace.values);
   const boxIds = trace.pushes.map((push) => push.boxId);
+  const dependencyMetrics = computeDependencyMetrics(board, initialBoxes);
+  const goalPushDegrees = computeGoalPushDegrees(board, goals);
 
   return {
     solvable: true,
@@ -42,7 +44,184 @@ export function computeStageMetrics(board, options = {}) {
     twoDecompositionLight: computeTwoDecompositionLight(boxIds, initialBoxes.length),
     movesPushesRatio: solved.movesOfSolution / Math.max(1, solved.minPushes),
     expanded: solved.stats.expanded,
+    dependencyCount: dependencyMetrics.dependencyCount,
+    dependencyDepth: dependencyMetrics.dependencyDepth,
+    mutualDependency: dependencyMetrics.mutualDependency,
+    goalPushDegrees,
+    minGoalPushDegree: Math.min(...goalPushDegrees),
+    forcedPushRatio: computeForcedPushRatio(board, solved.pushSequence),
   };
+}
+
+/**
+ * Conservative structural dependency estimate.  For each remaining box, the
+ * test treats every other remaining box as a wall and asks whether that single
+ * box can be pushed from the initial player position to any goal.  Removed
+ * boxes are floor.  This can count boxes as dependent even when the real
+ * multi-box solution could move a non-blocking box out of the way.
+ *
+ * @param {{width:number,height:number,walls:Set<number>,goals:Set<number>,boxes:Set<number>,player:number}} board
+ * @param {number[]} initialBoxes
+ * @returns {{dependencyCount:number,dependencyDepth:number,mutualDependency:boolean}}
+ */
+function computeDependencyMetrics(board, initialBoxes) {
+  const initiallySolvable = findSingleSolvableBoxes(board, initialBoxes);
+  const dependencyCount = initialBoxes.length - initiallySolvable.size;
+  if (dependencyCount === 0) {
+    return { dependencyCount, dependencyDepth: 0, mutualDependency: false };
+  }
+
+  const remaining = new Set(initialBoxes.filter((box) => !initiallySolvable.has(box)));
+  let dependencyDepth = 0;
+  let mutualDependency = false;
+
+  while (remaining.size > 0) {
+    dependencyDepth += 1;
+    const newlySolvable = findSingleSolvableBoxes(board, [...remaining]);
+    if (newlySolvable.size === 0) {
+      mutualDependency = true;
+      break;
+    }
+    if (newlySolvable.size === remaining.size) {
+      break;
+    }
+    for (const box of newlySolvable) {
+      remaining.delete(box);
+    }
+  }
+
+  return { dependencyCount, dependencyDepth, mutualDependency };
+}
+
+function findSingleSolvableBoxes(board, boxes) {
+  const boxSet = new Set(boxes);
+  const solvable = new Set();
+  for (const box of boxes) {
+    const blockers = new Set(boxSet);
+    blockers.delete(box);
+    if (canSolveSingleBox(board, box, blockers)) {
+      solvable.add(box);
+    }
+  }
+  return solvable;
+}
+
+function canSolveSingleBox(board, startBox, blockers) {
+  if (board.goals.has(startBox)) {
+    return true;
+  }
+
+  const startKey = `${startBox}:${board.player}`;
+  const visited = new Set([startKey]);
+  const queue = [{ box: startBox, player: board.player }];
+  let head = 0;
+
+  while (head < queue.length) {
+    const state = queue[head];
+    head += 1;
+    const reachable = floodReachableWithBoxes(board, state.player, blockers, state.box);
+    const bx = state.box % board.width;
+    const by = Math.floor(state.box / board.width);
+
+    for (const [, dx, dy] of DIRS) {
+      const stand = toIndex(bx - dx, by - dy, board.width);
+      const boxTo = toIndex(bx + dx, by + dy, board.width);
+      if (!reachable.has(stand) || !isFloorIndex(board, boxTo) || blockers.has(boxTo)) {
+        continue;
+      }
+      if (board.goals.has(boxTo)) {
+        return true;
+      }
+      const nextKey = `${boxTo}:${state.box}`;
+      if (visited.has(nextKey)) {
+        continue;
+      }
+      visited.add(nextKey);
+      queue.push({ box: boxTo, player: state.box });
+    }
+  }
+
+  return false;
+}
+
+function computeGoalPushDegrees(board, goals) {
+  return goals.map((goal) => {
+    const gx = goal % board.width;
+    const gy = Math.floor(goal / board.width);
+    let degree = 0;
+    for (const [, dx, dy] of DIRS) {
+      const boxFrom = toIndex(gx - dx, gy - dy, board.width);
+      const stand = toIndex(gx - 2 * dx, gy - 2 * dy, board.width);
+      if (isFloorIndex(board, boxFrom) && isFloorIndex(board, stand)) {
+        degree += 1;
+      }
+    }
+    return degree;
+  });
+}
+
+function computeForcedPushRatio(board, pushSequence) {
+  if (pushSequence.length === 0) {
+    return 0;
+  }
+
+  const boxes = new Set(board.boxes);
+  let player = board.player;
+  let forced = 0;
+
+  for (const push of pushSequence) {
+    if (countLegalPushDirections(board, boxes, player, push.boxFrom) === 1) {
+      forced += 1;
+    }
+    boxes.delete(push.boxFrom);
+    boxes.add(push.boxTo);
+    player = push.boxFrom;
+  }
+
+  return forced / pushSequence.length;
+}
+
+function countLegalPushDirections(board, boxes, player, box) {
+  const reachable = floodReachableWithBoxes(board, player, boxes, null);
+  const bx = box % board.width;
+  const by = Math.floor(box / board.width);
+  let count = 0;
+
+  for (const [, dx, dy] of DIRS) {
+    const stand = toIndex(bx - dx, by - dy, board.width);
+    const boxTo = toIndex(bx + dx, by + dy, board.width);
+    if (reachable.has(stand) && isFloorIndex(board, boxTo) && !boxes.has(boxTo)) {
+      count += 1;
+    }
+  }
+  return count;
+}
+
+function floodReachableWithBoxes(board, start, boxes, movingBox) {
+  const visited = new Set();
+  if (!isFloorIndex(board, start) || boxes.has(start) || start === movingBox) {
+    return visited;
+  }
+
+  const queue = [start];
+  let head = 0;
+  visited.add(start);
+
+  while (head < queue.length) {
+    const idx = queue[head];
+    head += 1;
+    const x = idx % board.width;
+    const y = Math.floor(idx / board.width);
+    for (const [, dx, dy] of DIRS) {
+      const next = toIndex(x + dx, y + dy, board.width);
+      if (visited.has(next) || next === movingBox || boxes.has(next) || !isFloorIndex(board, next)) {
+        continue;
+      }
+      visited.add(next);
+      queue.push(next);
+    }
+  }
+  return visited;
 }
 
 function computeReversePullDistances(board, goals) {
@@ -354,6 +533,10 @@ function sorted(values) {
 
 function stateKey(box, side) {
   return `${box}:${side}`;
+}
+
+function toIndex(x, y, width) {
+  return y * width + x;
 }
 
 function isFloorIndex(board, idx) {

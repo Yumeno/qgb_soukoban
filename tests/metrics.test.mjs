@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { parseBoard } from '../src/core/board.js';
 import { STAGES } from '../src/core/stages.js';
 import { computeStageMetrics } from '../src/core/metrics.js';
+import { solvePushes } from '../src/core/pushsolver.js';
 
 function boardFromLines(lines) {
   return parseBoard(lines.join('\n'));
@@ -22,10 +23,20 @@ function assertFiniteMetricSet(metrics, label) {
     'twoDecompositionLight',
     'movesPushesRatio',
     'expanded',
+    'dependencyCount',
+    'dependencyDepth',
+    'minGoalPushDegree',
+    'forcedPushRatio',
   ];
   for (const field of fields) {
     assert.equal(typeof metrics[field], 'number', `${label}: ${field} type`);
     assert.equal(Number.isFinite(metrics[field]), true, `${label}: ${field} finite`);
+  }
+  assert.equal(typeof metrics.mutualDependency, 'boolean', `${label}: mutualDependency type`);
+  assert.equal(Array.isArray(metrics.goalPushDegrees), true, `${label}: goalPushDegrees array`);
+  for (const degree of metrics.goalPushDegrees) {
+    assert.equal(typeof degree, 'number', `${label}: goalPushDegrees item type`);
+    assert.equal(Number.isFinite(degree), true, `${label}: goalPushDegrees item finite`);
   }
 }
 
@@ -159,4 +170,182 @@ test('MT-08: spacious walking-heavy one-box board has a high moves/pushes ratio'
   const metrics = computeStageMetrics(board);
   assert.equal(metrics.solvable, true);
   assert.ok(metrics.movesPushesRatio >= 8);
+});
+
+test('MD-01: independent two-box routes have no structural dependencies', () => {
+  // ########
+  // #@ $ . #
+  // #      #
+  // #  $ . #
+  // ########
+  const board = boardFromLines([
+    '########',
+    '#@ $ . #',
+    '#      #',
+    '#  $ . #',
+    '########',
+  ]);
+  const metrics = computeStageMetrics(board);
+  assert.equal(metrics.solvable, true);
+  assert.equal(metrics.dependencyCount, 0);
+  assert.equal(metrics.dependencyDepth, 0);
+  assert.equal(metrics.mutualDependency, false);
+});
+
+test('MD-02: plug box on the only route creates at least one dependency layer', () => {
+  // ########
+  // #@$  . #
+  // # $ #  #
+  // # #.   #
+  // ########
+  const board = boardFromLines([
+    '########',
+    '#@$  . #',
+    '# $ #  #',
+    '# #.   #',
+    '########',
+  ]);
+  const metrics = computeStageMetrics(board);
+  assert.equal(metrics.solvable, true);
+  assert.ok(metrics.dependencyCount >= 1);
+  assert.ok(metrics.dependencyDepth >= 1);
+  assert.equal(metrics.mutualDependency, false);
+});
+
+test('MD-03: chained dependencies require at least two peeling rounds', () => {
+  // #########
+  // #       #
+  // ## # #+ #
+  // #  . $$ #
+  // ##   .$ #
+  // #   #   #
+  // #########
+  const board = boardFromLines([
+    '#########',
+    '#       #',
+    '## # #+ #',
+    '#  . $$ #',
+    '##   .$ #',
+    '#   #   #',
+    '#########',
+  ]);
+  const metrics = computeStageMetrics(board);
+  assert.equal(metrics.solvable, true);
+  assert.ok(metrics.dependencyCount >= 2);
+  assert.ok(metrics.dependencyDepth >= 2);
+  assert.equal(metrics.mutualDependency, false);
+});
+
+test('MD-04: mutually blocking boxes are detected after solvability is confirmed', () => {
+  // ########
+  // #.#    #
+  // #$     #
+  // # $ @  #
+  // ## .  ##
+  // ########
+  const board = boardFromLines([
+    '########',
+    '#.#    #',
+    '#$     #',
+    '# $ @  #',
+    '## .  ##',
+    '########',
+  ]);
+  const solved = solvePushes(board);
+  assert.equal(solved.solvable, true);
+
+  const metrics = computeStageMetrics(board);
+  assert.equal(metrics.solvable, true);
+  assert.equal(metrics.mutualDependency, true);
+});
+
+test('MD-05: goal push degree distinguishes cornered and open goals', () => {
+  // #####
+  // #@$.#
+  // #####
+  const cornered = boardFromLines([
+    '#####',
+    '#@$.#',
+    '#####',
+  ]);
+  const corneredMetrics = computeStageMetrics(cornered);
+  assert.equal(corneredMetrics.minGoalPushDegree, 1);
+  assert.deepEqual(corneredMetrics.goalPushDegrees, [1]);
+
+  // #######
+  // #     #
+  // #  @  #
+  // #  $  #
+  // #  .  #
+  // #     #
+  // #######
+  const open = boardFromLines([
+    '#######',
+    '#     #',
+    '#  @  #',
+    '#  $  #',
+    '#  .  #',
+    '#     #',
+    '#######',
+  ]);
+  const openMetrics = computeStageMetrics(open);
+  assert.ok(openMetrics.minGoalPushDegree >= 3);
+});
+
+test('MD-06: a one-wide corridor has a fully forced push trace', () => {
+  // #######
+  // #@ $ .#
+  // #######
+  const board = boardFromLines([
+    '#######',
+    '#@ $ .#',
+    '#######',
+  ]);
+  const metrics = computeStageMetrics(board);
+  assert.equal(metrics.solvable, true);
+  assert.equal(metrics.minPushes, 2);
+  assert.equal(metrics.forcedPushRatio, 1);
+});
+
+test('MD-07: embedded stages expose finite D4a metrics', { timeout: 10000 }, () => {
+  assert.equal(STAGES.length, 10);
+  for (const stage of STAGES) {
+    const board = parseBoard(stage.text);
+    const metrics = computeStageMetrics(board);
+    assert.equal(metrics.solvable, true, stage.id);
+    assert.equal(typeof metrics.dependencyCount, 'number', stage.id);
+    assert.equal(typeof metrics.dependencyDepth, 'number', stage.id);
+    assert.equal(typeof metrics.mutualDependency, 'boolean', stage.id);
+    assert.equal(typeof metrics.minGoalPushDegree, 'number', stage.id);
+    assert.equal(typeof metrics.forcedPushRatio, 'number', stage.id);
+    assert.equal(Number.isFinite(metrics.dependencyCount), true, stage.id);
+    assert.equal(Number.isFinite(metrics.dependencyDepth), true, stage.id);
+    assert.equal(Number.isFinite(metrics.minGoalPushDegree), true, stage.id);
+    assert.equal(Number.isFinite(metrics.forcedPushRatio), true, stage.id);
+    assert.equal(metrics.goalPushDegrees.length, board.goals.size, stage.id);
+  }
+});
+
+test('MD-08: D4a metrics are deterministic for identical input', () => {
+  const board = parseBoard(STAGES[9].text);
+  const first = computeStageMetrics(board);
+  const second = computeStageMetrics(board);
+  assert.deepEqual(
+    {
+      dependencyCount: first.dependencyCount,
+      dependencyDepth: first.dependencyDepth,
+      mutualDependency: first.mutualDependency,
+      goalPushDegrees: first.goalPushDegrees,
+      minGoalPushDegree: first.minGoalPushDegree,
+      forcedPushRatio: first.forcedPushRatio,
+    },
+    {
+      dependencyCount: second.dependencyCount,
+      dependencyDepth: second.dependencyDepth,
+      mutualDependency: second.mutualDependency,
+      goalPushDegrees: second.goalPushDegrees,
+      minGoalPushDegree: second.minGoalPushDegree,
+      forcedPushRatio: second.forcedPushRatio,
+    },
+  );
 });
