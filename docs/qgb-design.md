@@ -1,6 +1,6 @@
 # qgb 品質ゲート設計書 (qgb_soukoban)
 
-- 版: v0.2 (Codex セカンドオピニオン反映済み 2026-07-11)
+- 版: v0.3.1 (収録ステージを生成選抜方式に更新 + Codex 文書レビュー反映 2026-07-11)
 - 関連: [design.md](design.md) / [test-design.md](test-design.md)
 - 準拠: qgb スキル v0.1.5 / 段階設計パターン B (proposal/adopt 経路)
 
@@ -8,7 +8,7 @@
 
 TDD(node:test)は**開発中の即時フィードバック**、qgb は**採用判定の機械証跡化**を担う。同じテストを両方が実行するが、目的が違う:
 
-- 開発中: `node --test tests/` を随時回す(Red→Green→Refactor)
+- 開発中: `node --test`(引数なし自動検出)を随時回す(Red→Green→Refactor)
 - 採用判定: `qgb run --yes` が同じ検査を**契約として**実行し、gate.json + stage log という再現可能な証跡を残す(P7)
 
 ALLOW の意味は「定義済みの機械検査に通過した」だけであり、面白さ・見た目の良さ・出荷可否を意味しない(P5)。見た目・操作感の確認は人間の目視で行い、**qgb の判定根拠には入れない**(P6)。
@@ -26,7 +26,7 @@ S1-static ──→ S2-unit ──→ S3-solvability
 |---|---|---|---|---|
 | S1-static | 静的成立 | 全 JS モジュールが構文検査に合格する | command | [] |
 | S2-unit | 単体テスト | node:test の全テストが成功する | command | [S1-static] |
-| S3-solvability | 可解性証跡 | 同梱全ステージと固定シード生成ステージの可解性・最短手数整合が独立スクリプトで検証される | command | [S2-unit] |
+| S3-solvability | 可解性証跡 | 収録全ステージと固定シード生成ステージの可解性・最短手数整合が独立スクリプトで検証される | command | [S2-unit] |
 | S4-artifact | 配布物整合 | 配布物の参照整合と層分離が静的検査で確認できる | command | [S1-static] |
 
 ### 設計判断(採らなかった案と理由)
@@ -40,7 +40,7 @@ S1-static ──→ S2-unit ──→ S3-solvability
 | REQ ID | 守りたい約束 | stages |
 |---|---|---|
 | REQ-CORE-001 | 倉庫番の標準ルール(移動・押し・undo・勝利・リプレイ)が正しく動く | S1-static, S2-unit |
-| REQ-SOLV-001 | 同梱 10 面は全数ソルバー検証でクリア可能であり、生成面は合法 push の逆写像による構成的保証と固定シード代表集合の回帰検査で担保される | S1-static, S2-unit, S3-solvability |
+| REQ-SOLV-001 | 収録 10 面(生成選抜)は全数ソルバー検証でクリア可能であり、生成面は合法 push の逆写像による構成的保証と固定シード代表集合の回帰検査で担保される | S1-static, S2-unit, S3-solvability |
 | REQ-DIST-001 | 配布物一式が欠損なく起動可能な形で揃っている | S1-static, S4-artifact |
 
 REQ 本文 (`.md`) には acceptance criteria として test-design.md のケース ID を参照で紐付ける。
@@ -79,7 +79,7 @@ timeout_seconds: S3 は余裕を持って 300、他は 120(既定)。
 
 ## 6. 運用フロー(TDD とゲートの回し方)
 
-1. 実装サブエージェントが TDD で機能を完成(`node --test` Green)
+1. 実装サブエージェントが TDD で機能を完成(`node --test` Green)。収録ステージは生成器の候補群から品質チェック通過・難易度カーブ整列で選抜し `stages.js` に焼き込む(design.md §7.1)。
 2. `qgb check <REQ>` でリハーサル(揮発出力、curated evidence 不変)
 3. 問題なければ `qgb run <REQ> --yes` で本実行 → gate.json 生成
 4. マイルストーン: evidence を含めて git commit/push

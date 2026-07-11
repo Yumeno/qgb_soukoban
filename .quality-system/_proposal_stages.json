@@ -55,7 +55,7 @@
     {
       "id": "S3-solvability",
       "name": "可解性証跡",
-      "responsibility": "同梱全ステージと固定シード生成ステージの可解性・最短手数整合が独立スクリプトで検証される",
+      "responsibility": "収録全ステージと固定シード生成ステージの可解性・最短手数整合が独立スクリプトで検証される",
       "depends_on": ["S2-unit"],
       "verification_type": "command",
       "required_contract_fields": ["command", "expected_exit_code"]
