@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0",
+  "req_id": "REQ-DIST-001",
+  "title": "配布物一式が欠損なく起動可能な形で揃っている",
+  "stages": [
+    {
+      "stage_id": "S1-static",
+      "contract_ref": ".quality-system/contracts/REQ-DIST-001/S1-static.json",
+      "required": true
+    },
+    {
+      "stage_id": "S4-artifact",
+      "contract_ref": ".quality-system/contracts/REQ-DIST-001/S4-artifact.json",
+      "required": true
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0",
+  "req_id": "REQ-CORE-001",
+  "title": "倉庫番の標準ルール(移動・押し・undo・勝利・リプレイ)が正しく動く",
+  "stages": [
+    {
+      "stage_id": "S1-static",
+      "contract_ref": ".quality-system/contracts/REQ-CORE-001/S1-static.json",
+      "required": true
+    },
+    {
+      "stage_id": "S2-unit",
+      "contract_ref": ".quality-system/contracts/REQ-CORE-001/S2-unit.json",
+      "required": true
+    }
+  ]
+}

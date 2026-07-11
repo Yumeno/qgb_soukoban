@@ -1,0 +1,22 @@
+{
+  "schema_version": "1.0",
+  "req_id": "REQ-SOLV-001",
+  "title": "収録10面(生成選抜)は全数ソルバー検証でクリア可能であり、生成面は構成的保証と固定シード回帰検査で担保される",
+  "stages": [
+    {
+      "stage_id": "S1-static",
+      "contract_ref": ".quality-system/contracts/REQ-SOLV-001/S1-static.json",
+      "required": true
+    },
+    {
+      "stage_id": "S2-unit",
+      "contract_ref": ".quality-system/contracts/REQ-SOLV-001/S2-unit.json",
+      "required": true
+    },
+    {
+      "stage_id": "S3-solvability",
+      "contract_ref": ".quality-system/contracts/REQ-SOLV-001/S3-solvability.json",
+      "required": true
+    }
+  ]
+}

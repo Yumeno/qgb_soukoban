@@ -1,6 +1,6 @@
 # テスト設計書 (qgb_soukoban)
 
-- 版: v0.3.1 (生成選抜方式への変更を反映。S-08・quality.test.mjs 追加 + Codex 文書レビュー反映 2026-07-11)
+- 版: v0.3.2 (テスト実態との同期。設計表に載っていなかった超過テストを枝番 ID で追補。ユーザー指示 2026-07-11 「qgb でチェック対象としないテスト項目があってもよいが、TDD なら設計表に載せたほうが確実」による)
 - 関連: [design.md](design.md) / [qgb-design.md](qgb-design.md)
 
 ## 1. TDD 運用ルール
@@ -26,6 +26,8 @@ tests/
 
 ## 3. ケース一覧
 
+**S2 ゲートは `node --test` で実スイート全件を実行するため、本表に載る全テストが機械検査対象である。** qgb でチェック対象としない(表に載せない)テスト項目があってもよいが、TDD の観点からは設計表に載せたほうが確実である(ユーザー決定 2026-07-11)。§3.1〜3.3・3.6(board/game/solver/replay/progress、実装済み・実在するテストファイル)は `tests/*.test.mjs` の実テストを 1 件残らず追補済み。§3.4/3.5/3.7(generator/stages/quality)は 2026-07-11 現在まだ実装されていない(生成器・ステージ選抜・品質チェック機能が未着手のため対応するテストファイルが存在しない)ため、本書の先行設計のみを記載している。
+
 ### 3.1 board.test.mjs
 
 | # | ケース | 期待 |
@@ -38,7 +40,9 @@ tests/
 | B-06 | 不正文字を含む | 不合格 |
 | B-07 | 開始時点で全箱がゴール上 | 不合格 |
 | B-08 | 行長不一致の盤面 | 右側パディングで矩形化されパース成功(往復は正規化後表現と一致) |
+| B-08b | 空行を含む盤面 | parseBoard が即エラー |
 | B-09 | プレイヤーから到達不能な位置に箱またはゴール | 不合格 + 理由コード |
+| B-09b | 全ての箱・ゴールがプレイヤーから到達可能 | unreachable_entity は出ない(B-09 の否定側境界) |
 
 ### 3.2 game.test.mjs
 
@@ -56,6 +60,9 @@ tests/
 | G-10 | 不発移動はログに記録されない | ログは「有効手のみ」の U/D/L/R 列 |
 | G-11 | 勝利後の move / undo | いずれも不発(状態不変)。reset のみ有効 |
 | G-12 | undo 後に別の手を進める | ログは「初期状態から現在状態への手順」のみ(分岐履歴を残さない) |
+| G-13 | `Game.board` の取得値(スナップショット)を外部から書き換える | 内部状態に影響しない(再取得した `board` は変更前の値を保つ) |
+| G-14 | `applyMoves` に不正文字を含む文字列を渡す | 適用前に TypeError を投げ、状態(player/moves)も変化しない |
+| G-15 | `applyMoves` に正常な文字列を渡す | 文字列の手順を順に適用し、won/moves/log が最終手順どおりになる |
 
 ### 3.3 solver.test.mjs
 
@@ -65,10 +72,14 @@ tests/
 | S-02 | 解なし面(箱が凹角に固定) | solvable=false |
 | S-03 | S-01 の solution をリプレイ適用 | 勝利状態に到達(解の実在検証) |
 | S-04 | デッドロック枝刈り: ゴール上の箱が凹角にある可解面 | 誤って解なしにしない(枝刈りの健全性) |
-| S-05 | 展開上限を極小に設定 | `{solvable: null, reason:"limit"}`、例外なし |
-| S-06 | 2 箱の既知面 | minMoves 一致 |
+| S-05 | 展開上限を極小に設定(`maxStates: 0`) | `{solvable: null, reason:"limit"}`、例外なし |
+| S-05b | `maxStates` の境界値(1 / 2)で dequeue 数ちょうどに達したときの判定 | `maxStates:1` は limit(expanded=1, visited=2)、`maxStates:2` は solvable=true(expanded=2, visited=2)。dequeue 数境界での挙動を確認 |
+| S-06 | 2 箱の既知面 | minMoves 一致(8 手) |
+| S-06b | 4 箱・内壁を含む決定的なやや重い盤面 | 既定の展開上限内で solvable=true、solution が Game.applyMoves で勝利に到達 |
 | S-07 | 状態キー関数: 箱集合の列挙順を入れ替えても同一キー | 一致(visited 正規化の直接検証) |
+| S-07b | `isStaticCorner`: 左右端の列で行をまたがず盤外を壁相当として扱う | 端列(index 0)は corner 判定 true、行をまたいだ隣接マス(index 4)は誤って corner 判定しない(false) |
 | S-08 | 遷移同値性プロパティテスト: シード固定のランダム盤面群で、ソルバー内部が展開する合法遷移の集合と、game.js の move を上下左右 4 方向試した結果の集合を照合 | 完全一致(違法手を許容していないこと・合法手を見落としていないことの両方を検出) |
+| S-08 の決定的ケース | 箱 2 連続で押せない/箱を壁へ押せない/盤端での移動/ゴール上の箱を押す/箱 5 個と内壁のある盤面、の 5 パターンを固定盤面で先行検証 | 各パターンで legalMoves の遷移集合と Game.move の遷移集合が一致(ランダム 120 ケースの前段として決定的な代表ケースを個別に固定) |
 
 ### 3.4 generator.test.mjs
 
@@ -97,7 +108,9 @@ tests/
 | T-05 | ステージ ID・名前の一意性 | 重複なし |
 | T-06 | 規模上限: 全 10 面が 箱 ≤ 5・盤面 ≤ 12×10 | 合格(ソルバー資源上限の前提を守る。design.md §6) |
 
-### 3.6 replay.test.mjs
+### 3.6 replay.test.mjs / progress.test.mjs
+
+R-01〜R-03 は `tests/replay.test.mjs` に実装。R-04/R-05 は `src/core/progress.js` の純粋直列化ロジックを対象とし、`tests/progress.test.mjs` に実装(ファイル分離。§末尾の注を参照)。
 
 | # | ケース | 期待 |
 |---|---|---|
@@ -105,7 +118,13 @@ tests/
 | R-02 | undo を挟んだプレイのログ | undo 後の実効手順のみが残り、適用で同一終局 |
 | R-03 | 不正文字を含むリプレイ文字列の適用 | 明示エラー(黙って無視しない) |
 | R-04 | progress.js のスキーマ往復 (serialize → deserialize) | bestMoves/replay/clearedAt が保存される。壊れた JSON・版不一致は初期状態を返す |
+| R-04b | 壊れた JSON / version 不一致 / null や非オブジェクトの JSON を deserialize | いずれも初期状態(`{version:1, stages:{}}`)を返す(throw しない。R-04 の異常系境界) |
 | R-05 | progress.js の記録マージ (merge) | bestMoves は**改善時のみ**更新、replay は bestMoves 更新時に同時更新 |
+| R-05b | 未クリアのステージへの初回記録 | 新規作成され cleared:true が立つ(bestMoves/replay/clearedAt がそのまま反映) |
+| R-05c | 悪化時(moves が既存 bestMoves より大きい) | 既存の bestMoves/replay/clearedAt/cleared を維持(更新しない) |
+| R-05d | 同値時(moves == 既存 bestMoves) | 既存の replay/clearedAt を維持(改善時のみ更新という規則の境界値確認) |
+| R-05e | mergeClearRecord の immutability | 元の progress オブジェクトを変更しない(戻り値は新規オブジェクト) |
+| R-05f | 別ステージへの記録マージ | 既存ステージ(stage1)の記録に影響を与えない(ステージ間の独立性) |
 
 注: 純粋直列化ロジックは `src/core/progress.js` に置き node:test でテストする。`src/ui/storage.js` は localStorage adapter に限定しロジックを持たない(Codex 指摘: 配置とテスト対象の整合)。
 

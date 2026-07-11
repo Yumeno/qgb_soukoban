@@ -1,5 +1,56 @@
 {
   "schema_version": "1.0",
   "policy_id": "default",
-  "stages": []
+  "stages": [
+    {
+      "id": "S1-static",
+      "name": "静的成立",
+      "responsibility": "全 JS モジュールが構文検査に合格する",
+      "depends_on": [],
+      "verification_type": "command",
+      "required_contract_fields": [
+        "command",
+        "expected_exit_code"
+      ]
+    },
+    {
+      "id": "S2-unit",
+      "name": "単体テスト",
+      "responsibility": "node:test の全テストが成功する",
+      "depends_on": [
+        "S1-static"
+      ],
+      "verification_type": "command",
+      "required_contract_fields": [
+        "command",
+        "expected_exit_code"
+      ]
+    },
+    {
+      "id": "S3-solvability",
+      "name": "可解性証跡",
+      "responsibility": "収録全ステージと固定シード生成ステージの可解性・最短手数整合が独立スクリプトで検証される",
+      "depends_on": [
+        "S2-unit"
+      ],
+      "verification_type": "command",
+      "required_contract_fields": [
+        "command",
+        "expected_exit_code"
+      ]
+    },
+    {
+      "id": "S4-artifact",
+      "name": "配布物整合",
+      "responsibility": "配布物の参照整合と層分離が静的検査で確認できる",
+      "depends_on": [
+        "S1-static"
+      ],
+      "verification_type": "command",
+      "required_contract_fields": [
+        "command",
+        "expected_exit_code"
+      ]
+    }
+  ]
 }

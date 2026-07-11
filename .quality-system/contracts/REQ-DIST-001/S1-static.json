@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0",
+  "req_id": "REQ-DIST-001",
+  "stage_id": "S1-static",
+  "verification_type": "command",
+  "runtime": "node",
+  "command": [
+    "node",
+    "tools\\check-syntax.mjs"
+  ],
+  "expected_exit_code": 0,
+  "timeout_seconds": 120
+}

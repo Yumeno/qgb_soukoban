@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0",
+  "req_id": "REQ-SOLV-001",
+  "stage_id": "S3-solvability",
+  "verification_type": "command",
+  "runtime": "node",
+  "command": [
+    "node",
+    "tools\\verify-stages.mjs",
+    "--all"
+  ],
+  "expected_exit_code": 0,
+  "timeout_seconds": 300
+}

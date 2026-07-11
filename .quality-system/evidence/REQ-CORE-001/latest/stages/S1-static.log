@@ -1,0 +1,22 @@
+stage_id: S1-static
+name: 静的成立
+verification_type: command
+contract_ref: .quality-system/contracts/REQ-CORE-001/S1-static.json
+command: ['node', 'tools\\check-syntax.mjs']
+expected_exit_code: 0
+timeout_seconds: 120
+resolved cwd: C:\Users\vz7a-\Desktop\qgb_soukoban
+
+--- execution ---
+exit_code: 0
+stdout (full):
+OK src/core/board.js
+OK src/core/game.js
+OK src/core/progress.js
+OK src/core/solver.js
+OK tools/check-syntax.mjs
+checked 5 files, 0 failures
+
+stderr (full):
+
+result: passed

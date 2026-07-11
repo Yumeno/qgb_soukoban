@@ -1,4 +1,4 @@
-// リプレイ適用のテスト (docs/test-design.md §3.6 R-01〜R-03。R-04 は対象外/後続フェーズ)
+// リプレイ適用のテスト (docs/test-design.md §3.6 R-01〜R-03。R-04/R-05 は progress.test.mjs で扱う)
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseBoard } from '../src/core/board.js';
