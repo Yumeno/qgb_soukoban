@@ -1,0 +1,136 @@
+stage_id: S3-solvability
+name: 可解性証跡
+verification_type: command
+contract_ref: .quality-system/contracts/REQ-SOLV-001/S3-solvability.json
+command: ['node', 'tools\\verify-stages.mjs', '--all']
+expected_exit_code: 0
+timeout_seconds: 300
+resolved cwd: C:\Users\vz7a-\Desktop\qgb_soukoban
+
+--- execution ---
+exit_code: 0
+stdout (full):
+embedded per-stage
+group             id      seed       minMoves expected status reason ms
+----------------  ------  ---------  -------- -------- ------ ------ ---
+embedded          stage01  1511514112         1         1  PASS              1
+embedded          stage02  1511514626         3         3  PASS              0
+embedded          stage03  1511584788         5         5  PASS              0
+embedded          stage04  1511586073         7         7  PASS              1
+embedded          stage05  1511776770         9         9  PASS              2
+embedded          stage06  1511713033        11        11  PASS              1
+embedded          stage07  1511782938        13        13  PASS              0
+embedded          stage08  1511843848        15        15  PASS             79
+embedded          stage09  1511912982        17        17  PASS             19
+embedded          stage10  1511974920        20        20  PASS             57
+
+representative per-stage
+group             id      seed       minMoves expected status reason ms
+----------------  ------  ---------  -------- -------- ------ ------ ---
+difficulty:easy   -       1374772736         3         3  PASS              3
+difficulty:easy   -       1374772737         5         5  PASS              0
+difficulty:easy   -       1374772738         2         2  PASS              0
+difficulty:easy   -       1374772739         3         3  PASS              1
+difficulty:easy   -       1374772740         4         4  PASS              0
+difficulty:easy   -       1374772741         3         3  PASS              1
+difficulty:easy   -       1374772742         2         2  PASS              1
+difficulty:easy   -       1374772743         3         3  PASS              0
+difficulty:easy   -       1374772744         2         2  PASS              0
+difficulty:easy   -       1374772745         6         6  PASS              1
+difficulty:easy   -       1374772746         3         3  PASS              1
+difficulty:easy   -       1374772747         2         2  PASS              0
+difficulty:easy   -       1374772748         4         4  PASS              0
+difficulty:easy   -       1374772749         2         2  PASS              0
+difficulty:easy   -       1374772750         4         4  PASS              1
+difficulty:easy   -       1374772751         4         4  PASS              0
+difficulty:easy   -       1374772752         2         2  PASS              0
+difficulty:easy   -       1374772753         4         4  PASS              0
+difficulty:easy   -       1374772754         2         2  PASS              1
+difficulty:easy   -       1374772755         4         4  PASS              0
+difficulty:normal  -       1374772736         6         6  PASS              1
+difficulty:normal  -       1374772737        10        10  PASS              3
+difficulty:normal  -       1374772738         5         5  PASS              1
+difficulty:normal  -       1374772739         5         5  PASS              0
+difficulty:normal  -       1374772740         8         8  PASS              1
+difficulty:normal  -       1374772741         7         7  PASS              0
+difficulty:normal  -       1374772742         6         6  PASS              1
+difficulty:normal  -       1374772743         8         8  PASS              0
+difficulty:normal  -       1374772744         6         6  PASS              1
+difficulty:normal  -       1374772745         5         5  PASS              0
+difficulty:normal  -       1374772746         7         7  PASS              1
+difficulty:normal  -       1374772747        12        12  PASS              1
+difficulty:normal  -       1374772748         6         6  PASS              1
+difficulty:normal  -       1374772749         5         5  PASS              1
+difficulty:normal  -       1374772750         6         6  PASS              0
+difficulty:normal  -       1374772751         7         7  PASS              0
+difficulty:normal  -       1374772752         5         5  PASS              0
+difficulty:normal  -       1374772753         5         5  PASS              1
+difficulty:normal  -       1374772754         7         7  PASS              0
+difficulty:normal  -       1374772755         5         5  PASS              0
+difficulty:hard   -       1374772736         8         8  PASS              2
+difficulty:hard   -       1374772737         8         8  PASS              4
+difficulty:hard   -       1374772738        11        11  PASS              1
+difficulty:hard   -       1374772739        11        11  PASS              0
+difficulty:hard   -       1374772740         9         9  PASS              2
+difficulty:hard   -       1374772741         9         9  PASS              3
+difficulty:hard   -       1374772742         9         9  PASS              5
+difficulty:hard   -       1374772743         8         8  PASS              1
+difficulty:hard   -       1374772744        10        10  PASS              5
+difficulty:hard   -       1374772745        10        10  PASS              1
+difficulty:hard   -       1374772746         9         9  PASS              1
+difficulty:hard   -       1374772747         8         8  PASS              0
+difficulty:hard   -       1374772748         8         8  PASS              1
+difficulty:hard   -       1374772749        10        10  PASS              2
+difficulty:hard   -       1374772750        11        11  PASS              4
+difficulty:hard   -       1374772751         8         8  PASS              2
+difficulty:hard   -       1374772752        12        12  PASS              4
+difficulty:hard   -       1374772753         8         8  PASS              1
+difficulty:hard   -       1374772754        10        10  PASS              2
+difficulty:hard   -       1374772755         8         8  PASS              5
+layer:0           -       1511515392         2         2  PASS              0
+layer:0           -       1511515649         1         1  PASS              0
+layer:0           -       1511515906         1         1  PASS              0
+layer:0           -       1511516163         4         4  PASS              0
+layer:0           -       1511516420         1         1  PASS              0
+layer:1           -       1511580928         2         2  PASS              0
+layer:1           -       1511581185         2         2  PASS              0
+layer:1           -       1511581442         2         2  PASS              0
+layer:1           -       1511581699         3         3  PASS              0
+layer:1           -       1511581956         3         3  PASS              0
+layer:2           -       1511646464         4         4  PASS              1
+layer:2           -       1511646721         6         6  PASS              0
+layer:2           -       1511646978         9         9  PASS              0
+layer:2           -       1511647235         5         5  PASS              0
+layer:2           -       1511647492         6         6  PASS              1
+layer:3           -       1511712000         5         5  PASS              0
+layer:3           -       1511712257         6         6  PASS              0
+layer:3           -       1511712514         6         6  PASS              0
+layer:3           -       1511712771         6         6  PASS              1
+layer:3           -       1511713028         7         7  PASS              0
+layer:4           -       1511777536         7         7  PASS              1
+layer:4           -       1511777793        11        11  PASS              3
+layer:4           -       1511778050         9         9  PASS              1
+layer:4           -       1511778307        11        11  PASS              3
+layer:4           -       1511778564         7         7  PASS              0
+layer:5           -       1511843072         8         8  PASS              1
+layer:5           -       1511843329         9         9  PASS              5
+layer:5           -       1511843586         9         9  PASS              4
+layer:5           -       1511843843         8         8  PASS              3
+layer:5           -       1511844100        10        10  PASS              3
+layer:6           -       1511908608        13        13  PASS             11
+layer:6           -       1511908865        11        11  PASS              2
+layer:6           -       1511909122        14        14  PASS             22
+layer:6           -       1511909379        11        11  PASS             16
+layer:6           -       1511909636        11        11  PASS             11
+layer:7           -       1511974144        13        13  PASS             20
+layer:7           -       1511974401        15        15  PASS              7
+layer:7           -       1511974658        15        15  PASS              5
+layer:7           -       1511974915        14        14  PASS             22
+layer:7           -       1511975172        15        15  PASS             41
+
+representative total=100 pass=100 fail=0 elapsed=0.413s
+overall PASS failures=0
+
+stderr (full):
+
+result: passed

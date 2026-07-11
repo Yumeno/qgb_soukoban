@@ -1,0 +1,59 @@
+{
+  "schema_version": "1.0",
+  "req_id": "REQ-SOLV-001",
+  "timestamp_utc": "2026-07-11T074951Z",
+  "timestamp_rfc3339": "2026-07-11T07:49:51Z",
+  "run_id": "r0001",
+  "phase": "verify",
+  "status": "ALLOW",
+  "failed_stage": "",
+  "decision": {
+    "result": "ALLOW",
+    "meaning": "Defined checks passed. This is not proof of total correctness.",
+    "scope": "Judgement is local to this project's policy/contracts and is not comparable across projects (P11)."
+  },
+  "runner": {
+    "name": "qgb",
+    "version": "0.1.5"
+  },
+  "paths": {
+    "run_dir": ".quality-system/artifacts/REQ-SOLV-001/runs/2026-07-11T074951Z-r0001",
+    "curated_latest_dir": ".quality-system/evidence/REQ-SOLV-001/latest"
+  },
+  "stages": [
+    {
+      "id": "S1-static",
+      "name": "静的成立",
+      "result": "passed",
+      "verification_type": "command",
+      "exit_code": 0,
+      "contract_ref": ".quality-system/contracts/REQ-SOLV-001/S1-static.json",
+      "log_ref": "stages/S1-static.log"
+    },
+    {
+      "id": "S2-unit",
+      "name": "単体テスト",
+      "result": "passed",
+      "verification_type": "command",
+      "exit_code": 0,
+      "contract_ref": ".quality-system/contracts/REQ-SOLV-001/S2-unit.json",
+      "log_ref": "stages/S2-unit.log"
+    },
+    {
+      "id": "S3-solvability",
+      "name": "可解性証跡",
+      "result": "passed",
+      "verification_type": "command",
+      "exit_code": 0,
+      "contract_ref": ".quality-system/contracts/REQ-SOLV-001/S3-solvability.json",
+      "log_ref": "stages/S3-solvability.log"
+    }
+  ],
+  "basis": [
+    "REQ-SOLV-001",
+    "POLICY-default",
+    "CONTRACT-REQ-SOLV-001-S1-static",
+    "CONTRACT-REQ-SOLV-001-S2-unit",
+    "CONTRACT-REQ-SOLV-001-S3-solvability"
+  ]
+}
