@@ -1,6 +1,7 @@
 import { parseBoard } from '../core/board.js';
 import { Game } from '../core/game.js';
-import { generateStage, DIFFICULTY_PRESETS, GeneratorError } from '../core/generator.js';
+import { generateStage, DIFFICULTY_PRESETS } from '../core/generator.js';
+import { SEED_POOLS } from '../core/seedpools.js';
 import { STAGES } from '../core/stages.js';
 import { renderBoard } from './render.js';
 import { loadProgress, saveClearRecord } from './storage.js';
@@ -33,7 +34,7 @@ let clearOverlayTimer = null;
 let replay = null;
 let errorMessage = '';
 let storageNoticeShown = false;
-let randomSeedCounter = 0;
+const playedRandomSeeds = new Map(Object.keys(DIFFICULTY_PRESETS).map((difficulty) => [difficulty, new Set()]));
 
 renderMenu();
 window.addEventListener('keydown', handleKeydown);
@@ -128,24 +129,8 @@ function startStage(stage, index) {
 function startRandom(difficulty) {
   errorMessage = '';
   try {
-    randomSeedCounter = (randomSeedCounter + 1) >>> 0;
-    const seed = ((Date.now() >>> 0) ^ randomSeedCounter) >>> 0;
-    const generated = generateStage({
-      ...DIFFICULTY_PRESETS[difficulty],
-      seed,
-      maxAttempts: 120,
-    });
-    currentStage = {
-      kind: 'random',
-      index: null,
-      id: `random-${seed}`,
-      name: `Random ${difficulty}`,
-      text: null,
-      initialBoard: generated.board,
-      minMoves: generated.minMoves,
-      seed,
-      difficulty,
-    };
+    const { entry, generated } = generateRandomFromPool(difficulty);
+    currentStage = randomStageState(difficulty, entry, generated);
     game = new Game(generated.board);
     lastClearLog = '';
     clearPreviousBest = null;
@@ -153,11 +138,57 @@ function startRandom(difficulty) {
     cancelClearOverlayDelay();
     renderGame();
   } catch (error) {
-    errorMessage = error instanceof GeneratorError
-      ? 'ランダム面の生成に失敗しました。難易度を変えるか、もう一度試してください。'
-      : `ランダム面を開始できませんでした: ${error.message}`;
+    errorMessage = `ランダム面を開始できませんでした: ${error.message}`;
     renderMenu();
   }
+}
+
+function generateRandomFromPool(difficulty) {
+  const first = pickSeedPoolEntry(difficulty);
+  try {
+    return {
+      entry: first,
+      generated: generateStage({ ...first.params, seed: first.seed }),
+    };
+  } catch {
+    const retry = pickSeedPoolEntry(difficulty);
+    return {
+      entry: retry,
+      generated: generateStage({ ...retry.params, seed: retry.seed }),
+    };
+  }
+}
+
+function pickSeedPoolEntry(difficulty) {
+  const pool = SEED_POOLS[difficulty];
+  if (!Array.isArray(pool) || pool.length === 0) {
+    throw new Error(`missing seed pool: ${difficulty}`);
+  }
+
+  const played = playedRandomSeeds.get(difficulty) ?? new Set();
+  if (played.size >= pool.length) {
+    played.clear();
+  }
+
+  const candidates = pool.filter((entry) => !played.has(entry.seed));
+  const entry = candidates[Math.floor(Math.random() * candidates.length)];
+  played.add(entry.seed);
+  playedRandomSeeds.set(difficulty, played);
+  return entry;
+}
+
+function randomStageState(difficulty, entry, generated) {
+  return {
+    kind: 'random',
+    index: null,
+    id: `random-${entry.seed}`,
+    name: `Random ${difficulty}`,
+    text: null,
+    initialBoard: generated.board,
+    minMoves: entry.minMoves,
+    seed: entry.seed,
+    difficulty,
+  };
 }
 
 function renderGame() {

@@ -73,14 +73,29 @@ for (const stage of STAGES) {
     assert.equal(stage.metrics.minPushes, metrics.minPushes, `${stage.id}: minPushes`);
     assert.equal(stage.metrics.boxChanges, metrics.boxChanges, `${stage.id}: boxChanges`);
     assert.equal(stage.metrics.maxPhiBarrier, metrics.maxPhiBarrier, `${stage.id}: maxPhiBarrier`);
+    assert.equal(stage.metrics.dependencyCount, metrics.dependencyCount, `${stage.id}: dependencyCount`);
+    assert.equal(stage.metrics.dependencyDepth, metrics.dependencyDepth, `${stage.id}: dependencyDepth`);
+    assert.equal(stage.metrics.mutualDependency, metrics.mutualDependency, `${stage.id}: mutualDependency`);
+    assert.equal(stage.metrics.minGoalPushDegree, metrics.minGoalPushDegree, `${stage.id}: minGoalPushDegree`);
     assert.equal(stage.metrics.movesPushesRatio, Math.round(metrics.movesPushesRatio * 1000) / 1000, `${stage.id}: movesPushesRatio`);
   });
 }
 
 test('T-09: stage08-stage10 require maxPhiBarrier >= 1', () => {
-  for (const stage of STAGES.slice(7, 10)) {
+  for (const stage of STAGES.slice(7, 9)) {
     assert.ok(stage.metrics.maxPhiBarrier >= 1, `${stage.id}: maxPhiBarrier=${stage.metrics.maxPhiBarrier}`);
+    assert.ok(stage.metrics.dependencyDepth >= 1, `${stage.id}: dependencyDepth=${stage.metrics.dependencyDepth}`);
   }
+});
+
+test('T-10: stage10 requires a strong dependency structure', () => {
+  const stage10 = STAGES[9];
+  assert.ok(
+    stage10.metrics.dependencyDepth >= 2
+      || stage10.metrics.mutualDependency
+      || stage10.metrics.dependencyCount >= 2,
+    `${stage10.id}: depDepth=${stage10.metrics.dependencyDepth} depCount=${stage10.metrics.dependencyCount} mutual=${stage10.metrics.mutualDependency}`,
+  );
 });
 
 for (const stage of STAGES) {

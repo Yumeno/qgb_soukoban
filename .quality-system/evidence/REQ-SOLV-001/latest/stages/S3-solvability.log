@@ -13,53 +13,75 @@ stdout (full):
 embedded per-stage
 group             id      seed       moves pushes changes phi ratio score attempts            status reason ms
 ----------------  ------  ---------  ----- ------ ------- --- ----- ----- ------------------ ------ ------ ---
-embedded          stage01  1511514883      4       1        0    0      4      0  -                   PASS              3
-embedded          stage02  1511514369      3       1        0    0      3      2  -                   PASS              0
-embedded          stage03  1511645184     11       4        1    0   2.75     11  -                   PASS              7
-embedded          stage04  1511647754      7       4        2    0   1.75     14  -                   PASS              7
-embedded          stage05  1511777541     16       7        2    0  2.286     20  -                   PASS             78
-embedded          stage06  1511843848     32      14        3    0  2.429     37  -                   PASS            231
-embedded          stage07  1511907842     33      14        5    1  2.857     48  -                   PASS             85
-embedded          stage08  1511972864     32      15        5    1  2.133     50  -                   PASS            159
-embedded          stage09  1511908613     37      14        6    1  2.857     51  -                   PASS            176
-embedded          stage10  1511974406     34      17        6    1  2.118     57  -                   PASS            248
+embedded          stage01  1511514883      4       1        0    0      4      1  -                   PASS              4
+embedded          stage02  1511514369      3       1        0    0      3      3  -                   PASS              0
+embedded          stage03  1511777027     16       7        3    0  2.429     15  -                   PASS             52
+embedded          stage04       5000     25      12        2    0  2.083     20  -                   PASS             74
+embedded          stage05       5002     27      12        2    0  2.417     26  -                   PASS            101
+embedded          stage06       5007     27      12        2    0   2.25     26  -                   PASS            106
+embedded          stage07  1511843848     32      14        3    0  2.429     31  -                   PASS            215
+embedded          stage08       6009     21      10        3    1    2.3     37  -                   PASS             79
+embedded          stage09       6040     23      10        3    1    2.5     37  -                   PASS             85
+embedded          stage10       6078     21      10        3    1    2.1     37  -                   PASS             78
 
 representative per-stage
 group             id      seed       moves pushes changes phi ratio score attempts            status reason ms
 ----------------  ------  ---------  ----- ------ ------- --- ----- ----- ------------------ ------ ------ ---
-difficulty:easy   -       1374772736      8       4        0    0      2      -  attempts 49/6000    PASS             13
-difficulty:easy   -       1374772737      9       4        0    0   2.25      -  attempts 142/6000   PASS             18
-difficulty:easy   -       1374772738      6       4        0    0    1.5      -  attempts 123/6000   PASS             13
-difficulty:easy   -       1374772739     12       4        0    0    3.5      -  attempts 74/6000    PASS              8
-difficulty:easy   -       1374772740      8       4        0    0      2      -  attempts 350/6000   PASS             27
-difficulty:normal  -       1374772736     28       9        2    0  3.111      -  attempts 19/2500    PASS            444
-difficulty:normal  -       1374772737     33      13        3    0  2.692      -  attempts 1/2500     PASS            248
-difficulty:normal  -       1374772738     27       9        3    0  3.556      -  attempts 55/2500    PASS            561
-difficulty:normal  -       1374772739     22      10        2    1    2.5      -  attempts 19/2500    PASS            222
-difficulty:normal  -       1374772740     21       9        3    0  2.333      -  attempts 2/2500     PASS             86
-difficulty:hard   -       1374772736     45      16        6    1  3.813      -  attempts 365/1000   PASS            13468
-difficulty:hard   -       1374772737     24       8        4    1    3.5      -  attempts 893/1000   WARN            43975
-difficulty:hard   -       1374772738     24       8        4    1      3      -  attempts 28/1000    PASS            1773
-difficulty:hard   -       1374772739     30      15        6    1    2.4      -  attempts 234/1000   PASS            15293
-difficulty:hard   -       1374772740     27      10        5    1      3      -  attempts 647/1000   WARN            35165
+difficulty:easy   -       1374772736      8       4        0    0      2      -  attempts 49/6000    PASS             16
+difficulty:easy   -       1374772737      9       4        0    0   2.25      -  attempts 142/6000   PASS             20
+difficulty:easy   -       1374772738      6       4        0    0    1.5      -  attempts 123/6000   PASS             14
+difficulty:easy   -       1374772739     12       4        0    0    3.5      -  attempts 74/6000    PASS              9
+difficulty:easy   -       1374772740      8       4        0    0      2      -  attempts 350/6000   PASS             32
+difficulty:normal  -       1374772736     28       9        2    0  3.111      -  attempts 19/2500    PASS            491
+difficulty:normal  -       1374772737     33      13        3    0  2.692      -  attempts 1/2500     PASS            273
+difficulty:normal  -       1374772738     27       9        3    0  3.556      -  attempts 55/2500    PASS            580
+difficulty:normal  -       1374772739     22      10        2    1    2.5      -  attempts 19/2500    PASS            213
+difficulty:normal  -       1374772740     21       9        3    0  2.333      -  attempts 2/2500     PASS             97
+difficulty:hard   -       1374772736     45      16        6    1  3.813      -  attempts 365/1000   PASS            7449
+difficulty:hard   -       1374772737     24       8        4    1    3.5      -  attempts 893/1000   WARN            20471
+difficulty:hard   -       1374772738     24       8        4    1      3      -  attempts 28/1000    PASS            731
+difficulty:hard   -       1374772739     30      15        6    1    2.4      -  attempts 234/1000   PASS            6556
+difficulty:hard   -       1374772740     27      10        5    1      3      -  attempts 647/1000   WARN            14797
 layer:0           -       1511515392      3       1        0    0      3      -  attempts 1/200      PASS              0
-layer:0           -       1511515649      3       1        0    0      3      -  attempts 2/200      PASS              0
-layer:1           -       1511580928      7       3        0    0  2.333      -  attempts 1/200      PASS              1
-layer:1           -       1511581185      7       2        0    0    3.5      -  attempts 7/200      PASS              3
-layer:2           -       1511646464      8       5        2    0    1.8      -  attempts 11/200     PASS             11
-layer:2           -       1511646721     12       4        2    0      3      -  attempts 6/200      PASS              9
-layer:3           -       1511712000     24       6        1    0  4.333      -  attempts 11/200     PASS             14
-layer:3           -       1511712257     16       6        2    0  2.667      -  attempts 25/200     PASS             49
-layer:4           -       1511777536     13       6        4    0  2.167      -  attempts 30/200     PASS            118
-layer:4           -       1511777793     16       8        3    0   2.25      -  attempts 20/200     PASS            385
-layer:5           -       1511843072     24      10        5    0    2.4      -  attempts 55/200     PASS            1139
-layer:5           -       1511843329     28       9        4    1  3.556      -  attempts 17/200     PASS            494
-layer:6           -       1511908608     38      14        6    1  2.857      -  attempts 228/1000   PASS            18484
-layer:6           -       1511908865     40      14        5    1      3      -  attempts 555/1000   WARN            29964
-layer:7           -       1511974144     24      11        7    1  2.364      -  attempts 342/1200   PASS            24194
-layer:7           -       1511974401     36      13        6    1  2.769      -  attempts 386/1200   PASS            23848
+layer:0           -       1511515649      3       1        0    0      3      -  attempts 2/200      PASS              1
+layer:1           -       1511580928      7       3        0    0  2.333      -  attempts 1/200      PASS              0
+layer:1           -       1511581185      7       2        0    0    3.5      -  attempts 7/200      PASS              1
+layer:2           -       1511646464      8       5        2    0    1.8      -  attempts 11/200     PASS              3
+layer:2           -       1511646721      8       5        3    0    1.6      -  attempts 6/200      PASS              4
+layer:3           -       1511712000     24       6        1    0  4.333      -  attempts 11/200     PASS              8
+layer:3           -       1511712257     16       6        2    0  2.667      -  attempts 25/200     PASS             17
+layer:4           -       1511777536     14       7        2    0  2.143      -  attempts 46/200     PASS             95
+layer:4           -       1511777793     16       8        3    0   2.25      -  attempts 20/200     PASS            161
+layer:5           -       1511843072     24      10        5    0    2.4      -  attempts 55/200     PASS            656
+layer:5           -       1511843329     28       9        4    1  3.556      -  attempts 17/200     PASS            291
+layer:6           -       1511908608     38      14        6    1  2.857      -  attempts 228/1000   PASS            7376
+layer:6           -       1511908865     40      14        5    1      3      -  attempts 555/1000   WARN            13480
+layer:7           -       1511974144     24      11        7    1  2.364      -  attempts 342/1200   PASS            10326
+layer:7           -       1511974401     36      13        6    1  2.769      -  attempts 386/1200   PASS            10170
+layer:8           -            5000     19       8        2    0  2.375      -  attempts 3/220      PASS            111
+layer:8           -            5001     19       8        2    0  2.375      -  attempts 11/220     PASS            149
+layer:8           -            5002     27      12        2    0  2.417      -  attempts 31/220     PASS            280
+layer:8           -            5003     21       8        2    0  2.875      -  attempts 43/220     PASS            348
+layer:8           -            5004     19       8        2    0  2.375      -  attempts 2/220      PASS             98
+layer:8           -            5007     27      12        2    0   2.25      -  attempts 5/220      PASS            223
+layer:9           -            6001     27      12        2    0   2.25      -  attempts 35/300     PASS            456
+layer:9           -            6007     27      12        2    0   2.25      -  attempts 35/300     PASS            465
+layer:9           -            6009     21      10        3    1    2.3      -  attempts 1/300      PASS            155
+layer:9           -            6040     23      10        3    1    2.5      -  attempts 2/300      PASS            160
+layer:9           -            6041     25      11        2    0  2.273      -  attempts 3/300      PASS            188
+layer:9           -            6043     27      12        2    0   2.25      -  attempts 64/300     PASS            590
+layer:9           -            6051     25      11        2    0  2.273      -  attempts 40/300     PASS            321
+layer:9           -            6053     21      10        4    0    2.3      -  attempts 84/300     PASS            708
+layer:9           -            6055     23      10        2    0    2.3      -  attempts 8/300      PASS            308
+layer:9           -            6071     27      12        2    0   2.25      -  attempts 3/300      PASS            206
+layer:9           -            6073     25      11        2    0  2.273      -  attempts 27/300     PASS            267
+layer:9           -            6078     21      10        3    1    2.1      -  attempts 17/300     PASS            245
+layer:10          -            5000     25      12        2    0  2.083      -  attempts 5/180      PASS            118
+layer:10          -            5001     25      12        2    0  2.083      -  attempts 28/180     PASS            293
+layer:10          -            5002     31      13        4    0  2.538      -  attempts 3/180      PASS             61
+layer:10          -            5004     21      10        2    0    2.3      -  attempts 3/180      PASS             90
 
-representative total=31 pass=28 warn=3 fail=0 elapsed=211.021s
+representative total=53 pass=50 warn=3 fail=0 elapsed=100.973s
 overall PASS failures=0
 
 stderr (full):

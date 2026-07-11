@@ -7,4 +7,7 @@ export const PARAM_LAYERS = [
   { width: 9, height: 7, boxCount: 3, pullSteps: 36, minPushesFloor: 7, wallDensity: 0.08, goalClustering: true, seedIndexes: [8] },
   { width: 9, height: 7, boxCount: 3, pullSteps: 36, minPushesFloor: 8, maxPhiBarrierFloor: 1, wallDensity: 0.08, goalClustering: true, maxAttempts: 1000, seedIndexes: [2, 5] },
   { width: 9, height: 7, boxCount: 3, pullSteps: 40, minPushesFloor: 9, maxPhiBarrierFloor: 1, wallDensity: 0.06, goalClustering: true, maxAttempts: 1200, seedIndexes: [0, 6] },
+  { width: 9, height: 7, boxCount: 3, pullSteps: 100, minPushesFloor: 8, motif: 'packingRoom', maxAttempts: 220, seedValues: [5000, 5001, 5002, 5003, 5004, 5007] },
+  { width: 9, height: 7, boxCount: 3, pullSteps: 120, minPushesFloor: 10, motif: 'plug', maxAttempts: 300, seedValues: [6001, 6007, 6009, 6040, 6041, 6043, 6051, 6053, 6055, 6071, 6073, 6078] },
+  { width: 9, height: 7, boxCount: 3, pullSteps: 80, minPushesFloor: 8, motif: 'uTurn', maxAttempts: 180, seedValues: [5000, 5001, 5002, 5004] },
 ];

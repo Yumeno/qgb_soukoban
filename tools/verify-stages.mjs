@@ -73,9 +73,9 @@ for (const difficulty of DIFFICULTIES) {
 }
 
 for (let layerIndex = 0; layerIndex < PARAM_LAYERS.length; layerIndex += 1) {
-  const { seedIndexes, ...layer } = PARAM_LAYERS[layerIndex];
-  for (const baseSeed of LAYER_SEEDS) {
-    const seed = (baseSeed + layerIndex * 0x10000) >>> 0;
+  const { seedIndexes, seedValues, ...layer } = PARAM_LAYERS[layerIndex];
+  const seeds = seedValues ?? LAYER_SEEDS.map((baseSeed) => (baseSeed + layerIndex * 0x10000) >>> 0);
+  for (const seed of seeds) {
     representativeRows.push(runGeneratedRepresentative({
       group: `layer:${layerIndex}`,
       seed,
@@ -177,6 +177,10 @@ function verifyBoard(board, expectedMinMoves, expectedMetrics = null) {
     assertMetric('minPushes', metrics.minPushes, expectedMetrics.minPushes);
     assertMetric('boxChanges', metrics.boxChanges, expectedMetrics.boxChanges);
     assertMetric('maxPhiBarrier', metrics.maxPhiBarrier, expectedMetrics.maxPhiBarrier);
+    assertMetric('dependencyCount', metrics.dependencyCount, expectedMetrics.dependencyCount);
+    assertMetric('dependencyDepth', metrics.dependencyDepth, expectedMetrics.dependencyDepth);
+    assertMetric('mutualDependency', metrics.mutualDependency, expectedMetrics.mutualDependency);
+    assertMetric('minGoalPushDegree', metrics.minGoalPushDegree, expectedMetrics.minGoalPushDegree);
     assertMetric('movesPushesRatio', roundMetric(metrics.movesPushesRatio), expectedMetrics.movesPushesRatio);
   }
 

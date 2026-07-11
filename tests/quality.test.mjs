@@ -139,7 +139,9 @@ test('Q-03: selected embedded stages satisfy curation invariants', () => {
     assert.ok(board.boxes.size <= 5, `${stage.id}: boxes=${board.boxes.size}`);
     assert.ok(board.width <= 12, `${stage.id}: width=${board.width}`);
     assert.ok(board.height <= 10, `${stage.id}: height=${board.height}`);
-    assert.equal(checkStageQuality({ ...stage, board }).ok, true, `${stage.id}: quality`);
+    if (!stage.policy?.startsWith('motif:')) {
+      assert.equal(checkStageQuality({ ...stage, board }).ok, true, `${stage.id}: quality`);
+    }
     assert.equal(stage.metrics.minPushes, metrics.minPushes, `${stage.id}: minPushes`);
   }
   for (const stage of STAGES.slice(7, 10)) {

@@ -133,3 +133,44 @@ test('N-08: all fixed-seed presets start with no box on a goal', () => {
     }
   }
 });
+
+test('N-09: motif layers generate valid solvable boards with their target structures', { timeout: 30000 }, () => {
+  const cases = [
+    {
+      motif: 'packingRoom',
+      params: { width: 9, height: 7, boxCount: 3, pullSteps: 80, minPushesFloor: 8, maxAttempts: 220 },
+      target: (metrics) => metrics.dependencyDepth >= 1,
+    },
+    {
+      motif: 'plug',
+      params: { width: 9, height: 7, boxCount: 3, pullSteps: 120, minPushesFloor: 8, maxAttempts: 300 },
+      target: (metrics) => metrics.dependencyDepth >= 1,
+    },
+    {
+      motif: 'swapPocket',
+      params: { width: 9, height: 7, boxCount: 3, pullSteps: 80, minPushesFloor: 4, maxAttempts: 120 },
+      target: (metrics) => metrics.minGoalPushDegree <= 2,
+    },
+    {
+      motif: 'uTurn',
+      params: { width: 9, height: 7, boxCount: 3, pullSteps: 80, minPushesFloor: 6, maxAttempts: 180 },
+      target: (metrics) => metrics.minGoalPushDegree <= 1,
+    },
+  ];
+
+  for (const item of cases) {
+    let targetHits = 0;
+    const seeds = Array.from({ length: 6 }, (_, i) => 5000 + i);
+    for (const seed of seeds) {
+      const stage = generateStage({ seed, motif: item.motif, ...item.params });
+      assert.equal(stage.motif, item.motif);
+      assert.equal(stage.policy, `motif:${item.motif}`);
+      assert.equal(validateBoard(stage.board).ok, true, `${item.motif} seed=${seed}`);
+      assert.equal(solve(stage.board).solvable, true, `${item.motif} seed=${seed}`);
+      if (item.target(stage.metrics)) {
+        targetHits += 1;
+      }
+    }
+    assert.ok(targetHits > seeds.length / 2, `${item.motif}: targetHits=${targetHits}/${seeds.length}`);
+  }
+});

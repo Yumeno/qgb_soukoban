@@ -2,6 +2,7 @@ import { validateBoard } from './board.js';
 import { Game } from './game.js';
 import { solve } from './solver.js';
 import { computeStageMetrics } from './metrics.js';
+import { buildMotifSkeleton, listMotifs } from './motifs.js';
 import { mulberry32 } from './rng.js';
 
 const DIRS = [
@@ -30,7 +31,9 @@ export function generateStage(params) {
   const normalized = normalizeParams(params);
   for (let attempt = 1; attempt <= normalized.maxAttempts; attempt += 1) {
     const rng = mulberry32(deriveSeed(normalized, attempt));
-    const candidate = normalized.goalClustering && rng() < 0.75
+    const candidate = normalized.motif !== null
+      ? buildMotifCandidate(normalized, rng)
+      : normalized.goalClustering && rng() < 0.75
       ? buildPlacementCandidate(normalized, rng)
       : buildCandidate(normalized, rng);
     if (candidate === null) {
@@ -86,7 +89,8 @@ export function generateStage(params) {
       metrics,
       seed: normalized.seed,
       params: { ...normalized },
-      policy: normalized.goalClustering ? 'goal-clustered' : 'scattered',
+      policy: normalized.motif !== null ? `motif:${normalized.motif}` : normalized.goalClustering ? 'goal-clustered' : 'scattered',
+      motif: normalized.motif,
       attempt,
     };
   }
@@ -102,6 +106,7 @@ function normalizeParams(params) {
     maxPhiBarrierFloor: 0,
     wallDensity: 0.16,
     goalClustering: false,
+    motif: null,
     ...params,
   };
   for (const key of ['seed', 'width', 'height', 'boxCount', 'pullSteps', 'maxAttempts', 'minMovesFloor', 'minPushesFloor', 'maxPhiBarrierFloor']) {
@@ -134,7 +139,94 @@ function normalizeParams(params) {
   if (typeof normalized.goalClustering !== 'boolean') {
     throw new TypeError('generateStage: goalClustering must be a boolean');
   }
+  if (normalized.motif !== null && !listMotifs().includes(normalized.motif)) {
+    throw new RangeError(`generateStage: motif must be one of ${listMotifs().join(', ')}`);
+  }
   return normalized;
+}
+
+function buildMotifCandidate(params, rng) {
+  const skeleton = buildMotifSkeleton(params.motif, params);
+  if (params.boxCount !== skeleton.boxCount) {
+    return null;
+  }
+
+  const boxes = new Set(skeleton.goals);
+  const playerCandidates = skeleton.floors.filter((idx) => !boxes.has(idx));
+  shuffle(playerCandidates, rng);
+  const player = playerCandidates[0];
+  if (player === undefined) {
+    return null;
+  }
+
+  const boxIds = new Map();
+  const initialBoxes = [...boxes].sort((a, b) => a - b);
+  for (let id = 0; id < initialBoxes.length; id += 1) {
+    boxIds.set(initialBoxes[id], id);
+  }
+
+  const state = {
+    width: skeleton.width,
+    height: skeleton.height,
+    walls: new Set(skeleton.walls),
+    goals: new Set(skeleton.goals),
+    boxes,
+    boxIds,
+    player,
+  };
+  const reverseSteps = [];
+  let movedAnyBox = false;
+  const unpulledBoxIds = new Set([...boxIds.values()]);
+
+  for (let step = 0; step < params.pullSteps; step += 1) {
+    const moves = reverseMoves(state);
+    if (moves.length === 0) {
+      break;
+    }
+    const move = selectBiasedReverseMove(state, moves, unpulledBoxIds, skeleton.targetRoute, rng);
+    applyReverseMove(state, move);
+    reverseSteps.push(move);
+    if (move.kind === 'pull') {
+      movedAnyBox = true;
+      unpulledBoxIds.delete(move.boxId);
+    }
+    if (unpulledBoxIds.size === 0
+      && reverseSteps.filter((reverseMove) => reverseMove.kind === 'pull').length >= Math.max(params.boxCount, params.minPushesFloor)
+      && !hasAnyBoxOnGoal(cloneBoard(state))) {
+      break;
+    }
+  }
+
+  const firstPullIndex = reverseSteps.findIndex((move) => move.kind === 'pull');
+  const effectiveReverseSteps = firstPullIndex === -1 ? [] : reverseSteps.slice(firstPullIndex);
+
+  return {
+    board: cloneBoard(state),
+    solution: effectiveReverseSteps.map((move) => move.forwardDir).reverse().join(''),
+    movedAnyBox,
+    movedAllBoxesFromGoals: unpulledBoxIds.size === 0,
+  };
+}
+
+function selectBiasedReverseMove(state, moves, unpulledBoxIds, targetRoute, rng) {
+  const pulls = moves.filter((move) => move.kind === 'pull');
+  const unpulledPulls = pulls.filter((move) => unpulledBoxIds.has(move.boxId));
+  const routePulls = pulls.filter((move) => targetRoute.has(move.boxTo));
+  const wallPulls = pulls.filter((move) => countAdjacentWalls(state, move.boxTo) >= 1);
+  const priority = [
+    unpulledPulls.filter((move) => targetRoute.has(move.boxTo) || countAdjacentWalls(state, move.boxTo) >= 1),
+    routePulls,
+    wallPulls,
+    unpulledPulls,
+    pulls,
+    moves,
+  ];
+  for (const pool of priority) {
+    if (pool.length > 0) {
+      return pool[Math.floor(rng() * pool.length)];
+    }
+  }
+  return moves[Math.floor(rng() * moves.length)];
 }
 
 function buildCandidate(params, rng) {
@@ -345,7 +437,6 @@ function reverseMoves(board) {
     const boxIdx = toIndex(boxX, boxY, width);
     if (isInside(boxX, boxY, width, height)
       && boxes.has(boxIdx)
-      && !board.goals.has(player)
       && isFree(backX, backY, width, height, walls, boxes)) {
       moves.push({
         kind: 'pull',
@@ -427,8 +518,25 @@ function deriveSeed(params, attempt) {
   h = mix(h ^ (params.maxPhiBarrierFloor << 20));
   h = mix(h ^ Math.floor(params.wallDensity * 1000));
   h = mix(h ^ (params.goalClustering ? 0xA5A5A5A5 : 0));
+  if (params.motif !== null) {
+    h = mix(h ^ hashString(params.motif));
+  }
   h = mix(h ^ Math.imul(attempt, 0x9E3779B1));
   return h >>> 0;
+}
+
+function countAdjacentWalls(board, idx) {
+  const x = idx % board.width;
+  const y = Math.floor(idx / board.width);
+  let count = 0;
+  for (const [, dx, dy] of DIRS) {
+    const nx = x + dx;
+    const ny = y + dy;
+    if (!isInside(nx, ny, board.width, board.height) || board.walls.has(toIndex(nx, ny, board.width))) {
+      count += 1;
+    }
+  }
+  return count;
 }
 
 function neighbors(idx, width) {
@@ -454,6 +562,15 @@ function mix(value) {
   x = Math.imul(x, 0x846CA68B);
   x ^= x >>> 16;
   return x >>> 0;
+}
+
+function hashString(value) {
+  let h = 2166136261;
+  for (let i = 0; i < value.length; i += 1) {
+    h ^= value.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
 }
 
 function isFree(x, y, width, height, walls, boxes) {

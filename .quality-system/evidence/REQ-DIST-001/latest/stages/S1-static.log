@@ -14,21 +14,24 @@ OK src/core/board.js
 OK src/core/game.js
 OK src/core/generator.js
 OK src/core/metrics.js
+OK src/core/motifs.js
 OK src/core/progress.js
 OK src/core/pushsolver.js
 OK src/core/quality.js
 OK src/core/rng.js
+OK src/core/seedpools.js
 OK src/core/solver.js
 OK src/core/stages.js
 OK src/ui/app.js
 OK src/ui/render.js
 OK src/ui/storage.js
+OK tools/build-seed-pools.mjs
 OK tools/check-artifacts.mjs
 OK tools/check-syntax.mjs
 OK tools/curate-stages.mjs
 OK tools/param-layers.mjs
 OK tools/verify-stages.mjs
-checked 18 files, 0 failures
+checked 21 files, 0 failures
 
 stderr (full):
 
