@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0",
   "req_id": "REQ-DIST-001",
-  "timestamp_utc": "2026-07-11T081547Z",
-  "timestamp_rfc3339": "2026-07-11T08:15:47Z",
+  "timestamp_utc": "2026-07-11T093339Z",
+  "timestamp_rfc3339": "2026-07-11T09:33:39Z",
   "run_id": "r0001",
   "phase": "verify",
   "status": "ALLOW",
@@ -17,7 +17,7 @@
     "version": "0.1.5"
   },
   "paths": {
-    "run_dir": ".quality-system/artifacts/REQ-DIST-001/runs/2026-07-11T081547Z-r0001",
+    "run_dir": ".quality-system/artifacts/REQ-DIST-001/runs/2026-07-11T093339Z-r0001",
     "curated_latest_dir": ".quality-system/evidence/REQ-DIST-001/latest"
   },
   "stages": [

@@ -111,3 +111,15 @@ test('N-07: 充足不能パラメータは maxAttempts 到達で GeneratorError'
     GeneratorError,
   );
 });
+
+test('N-08: all fixed-seed presets start with no box on a goal', () => {
+  for (const difficulty of DIFFICULTIES) {
+    for (const seed of FIXED_SEEDS) {
+      const stage = generatePreset(seed, difficulty);
+      for (const box of stage.board.boxes) {
+        assert.equal(stage.board.goals.has(box), false, `${difficulty} seed=${seed} box=${box}`);
+      }
+      assert.equal(serializeBoard(stage.board).includes('*'), false, `${difficulty} seed=${seed}`);
+    }
+  }
+});

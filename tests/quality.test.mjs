@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseBoard } from '../src/core/board.js';
 import { solve } from '../src/core/solver.js';
-import { checkStageQuality, hasRedundantBoxMovement } from '../src/core/quality.js';
+import { checkStageQuality, countBoxSwitches, hasRedundantBoxMovement } from '../src/core/quality.js';
 import { STAGES } from '../src/core/stages.js';
 
 function boardFromLines(lines) {
@@ -36,6 +36,18 @@ test('Q-01: 品質チェックは同一入力に対して同一判定を返す',
   for (const result of results) {
     assert.deepEqual(result, results[0]);
   }
+});
+
+test('Q-04: countBoxSwitches counts pushed box identity changes only', () => {
+  const board = boardFromLines([
+    '#######',
+    '#@ $. #',
+    '#  $ .#',
+    '#######',
+  ]);
+
+  assert.equal(countBoxSwitches(board, 'RR'), 0, 'same box pushed twice');
+  assert.equal(countBoxSwitches(board, 'RRLDR'), 1, 'pushes two different boxes');
 });
 
 test('Q-02: 冗長な箱移動を含む解は検出し、含まない解は検出しない', () => {

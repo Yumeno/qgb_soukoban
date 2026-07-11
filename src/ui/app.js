@@ -20,6 +20,7 @@ const KEY_TO_DIR = {
   d: 'R',
   D: 'R',
 };
+const CLEAR_OVERLAY_DELAY_MS = 700;
 
 let progress = loadProgress();
 let screen = 'menu';
@@ -28,6 +29,7 @@ let currentStage = null;
 let lastClearLog = '';
 let clearPreviousBest = null;
 let clearOverlayVisible = false;
+let clearOverlayTimer = null;
 let replay = null;
 let errorMessage = '';
 let storageNoticeShown = false;
@@ -43,6 +45,7 @@ window.addEventListener('resize', () => {
 
 function renderMenu() {
   screen = 'menu';
+  cancelClearOverlayDelay();
   stopReplay();
   game = null;
   currentStage = null;
@@ -118,6 +121,7 @@ function startStage(stage, index) {
   lastClearLog = '';
   clearPreviousBest = null;
   clearOverlayVisible = false;
+  cancelClearOverlayDelay();
   renderGame();
 }
 
@@ -146,6 +150,7 @@ function startRandom(difficulty) {
     lastClearLog = '';
     clearPreviousBest = null;
     clearOverlayVisible = false;
+    cancelClearOverlayDelay();
     renderGame();
   } catch (error) {
     errorMessage = error instanceof GeneratorError
@@ -185,6 +190,7 @@ function gameView(best) {
     ['Undo', () => { if (!replay && game.undo()) renderGame(); }],
     ['リセット', () => {
       stopReplay();
+      cancelClearOverlayDelay();
       game.reset();
       clearOverlayVisible = false;
       renderGame();
@@ -263,17 +269,21 @@ function handleKeydown(event) {
     return;
   }
   if (game.won) {
-    if (isBlockedGameKey(event.key) || event.key === 'Escape') {
+    if (isClearOverlayDelayPending()) {
+      event.preventDefault();
+    } else if (isBlockedGameKey(event.key) || event.key === 'Escape') {
       event.preventDefault();
     }
     if (event.key === 'r' || event.key === 'R') {
       stopReplay();
+      cancelClearOverlayDelay();
       game.reset();
       clearOverlayVisible = false;
       renderGame();
       return;
     }
     if (event.key === 'Escape') {
+      cancelClearOverlayDelay();
       renderMenu();
     }
     return;
@@ -304,6 +314,7 @@ function handleKeydown(event) {
   if (event.key === 'r' || event.key === 'R') {
     event.preventDefault();
     stopReplay();
+    cancelClearOverlayDelay();
     game.reset();
     clearOverlayVisible = false;
     renderGame();
@@ -321,7 +332,7 @@ function onClear() {
     ? progress.stages[currentStage.id]?.bestMoves ?? null
     : null;
   clearPreviousBest = previousBest;
-  clearOverlayVisible = true;
+  clearOverlayVisible = false;
   if (currentStage.kind === 'fixed') {
     const result = saveClearRecord(progress, currentStage.id, {
       moves: game.moves,
@@ -334,6 +345,7 @@ function onClear() {
       storageNoticeShown = true;
     }
   }
+  scheduleClearOverlay();
   renderGame();
 }
 
@@ -346,6 +358,7 @@ function startReplay(log) {
   const replayGame = new Game(currentStage.initialBoard);
   game = replayGame;
   clearOverlayVisible = false;
+  cancelClearOverlayDelay();
   errorMessage = '';
   replay = {
     log,
@@ -367,7 +380,12 @@ function scheduleReplay() {
     }
     if (replay.index >= replay.log.length) {
       stopReplay();
-      clearOverlayVisible = game.won;
+      if (game.won) {
+        clearOverlayVisible = false;
+        scheduleClearOverlay();
+      } else {
+        clearOverlayVisible = false;
+      }
       renderGame();
       return;
     }
@@ -391,6 +409,7 @@ function replayBanner() {
     }],
     ['中断', () => {
       stopReplay();
+      cancelClearOverlayDelay();
       game = new Game(currentStage.initialBoard);
       clearOverlayVisible = false;
       renderGame();
@@ -415,15 +434,43 @@ function handleReplayKeydown(event) {
   }
   if (event.key === 'Escape') {
     stopReplay();
+    cancelClearOverlayDelay();
     renderMenu();
     return;
   }
   if (event.key === 'r' || event.key === 'R') {
     stopReplay();
+    cancelClearOverlayDelay();
     game.reset();
     clearOverlayVisible = false;
     renderGame();
   }
+}
+
+function scheduleClearOverlay() {
+  if (clearOverlayTimer !== null) {
+    return;
+  }
+  clearOverlayTimer = window.setTimeout(() => {
+    clearOverlayTimer = null;
+    if (screen !== 'game' || !game?.won || replay) {
+      return;
+    }
+    clearOverlayVisible = true;
+    renderGame();
+  }, CLEAR_OVERLAY_DELAY_MS);
+}
+
+function cancelClearOverlayDelay() {
+  if (clearOverlayTimer === null) {
+    return;
+  }
+  window.clearTimeout(clearOverlayTimer);
+  clearOverlayTimer = null;
+}
+
+function isClearOverlayDelayPending() {
+  return clearOverlayTimer !== null;
 }
 
 function isBlockedGameKey(key) {

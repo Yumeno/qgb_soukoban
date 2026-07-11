@@ -64,6 +64,59 @@ export function hasRedundantBoxMovement(board, solution) {
 }
 
 /**
+ * Count how often consecutive pushes switch from one box identity to another.
+ * Box identities are assigned from initial box positions in ascending order.
+ *
+ * @param {{width:number,height:number,walls:Set<number>,boxes:Set<number>,player:number}} board
+ * @param {string} solution
+ * @returns {number}
+ */
+export function countBoxSwitches(board, solution) {
+  const width = board.width;
+  const height = board.height;
+  let player = board.player;
+  let lastPushedBox = null;
+  let switches = 0;
+
+  const boxAt = new Map();
+  const initialBoxes = [...board.boxes].sort((a, b) => a - b);
+  for (let id = 0; id < initialBoxes.length; id += 1) {
+    boxAt.set(initialBoxes[id], id);
+  }
+
+  for (const ch of solution) {
+    const dir = DIRS[ch];
+    if (!dir) {
+      throw new TypeError(`countBoxSwitches: invalid move '${ch}'`);
+    }
+
+    const nextPlayer = neighbor(player, dir, width);
+    if (!isInside(nextPlayer, width, height) || board.walls.has(nextPlayer)) {
+      continue;
+    }
+
+    if (boxAt.has(nextPlayer)) {
+      const nextBox = neighbor(nextPlayer, dir, width);
+      if (!isInside(nextBox, width, height) || board.walls.has(nextBox) || boxAt.has(nextBox)) {
+        continue;
+      }
+
+      const boxId = boxAt.get(nextPlayer);
+      if (lastPushedBox !== null && lastPushedBox !== boxId) {
+        switches += 1;
+      }
+      lastPushedBox = boxId;
+      boxAt.delete(nextPlayer);
+      boxAt.set(nextBox, boxId);
+    }
+
+    player = nextPlayer;
+  }
+
+  return switches;
+}
+
+/**
  * @param {{board:object,solution:string,minMoves:number}} stage
  * @returns {{ok:boolean,reasons:string[]}}
  */

@@ -9,6 +9,14 @@ const DIFFICULTY_SEEDS = Array.from({ length: 20 }, (_, i) => 0x51f15e00 + i);
 const LAYER_SEEDS = Array.from({ length: 5 }, (_, i) => 0x5A17E500 + i * 0x101);
 const DIFFICULTIES = ['easy', 'normal', 'hard'];
 
+class VerifyError extends Error {
+  constructor(reason, detail = '') {
+    super(detail ? `${reason}:${detail}` : reason);
+    this.reason = reason;
+    this.detail = detail;
+  }
+}
+
 if (!process.argv.includes('--all')) {
   console.log('usage: node tools/verify-stages.mjs --all');
   process.exit(1);
@@ -26,6 +34,7 @@ for (const stage of STAGES) {
     seed: stage.seed,
     minMoves: '-',
     expected: stage.minMoves,
+    attempts: '-',
     status: 'PASS',
     reason: '',
     ms: 0,
@@ -63,26 +72,27 @@ for (let layerIndex = 0; layerIndex < PARAM_LAYERS.length; layerIndex += 1) {
     representativeRows.push(runGeneratedRepresentative({
       group: `layer:${layerIndex}`,
       seed,
-      params: { seed, ...layer, maxAttempts: 120 },
+      params: { seed, ...layer, maxAttempts: 2000 },
     }));
   }
 }
 
 for (const row of representativeRows) {
-  if (row.status !== 'PASS') {
+  if (row.status === 'FAIL') {
     failures += 1;
   }
 }
 
 const representativePass = representativeRows.filter((row) => row.status === 'PASS').length;
-const representativeFail = representativeRows.length - representativePass;
+const representativeWarn = representativeRows.filter((row) => row.status === 'WARN').length;
+const representativeFail = representativeRows.filter((row) => row.status === 'FAIL').length;
 const elapsedSeconds = (Date.now() - overallStarted) / 1000;
 
 printStageTable('embedded per-stage', stageRows);
 console.log('');
 printStageTable('representative per-stage', representativeRows);
 console.log('');
-console.log(`representative total=${representativeRows.length} pass=${representativePass} fail=${representativeFail} elapsed=${elapsedSeconds.toFixed(3)}s`);
+console.log(`representative total=${representativeRows.length} pass=${representativePass} warn=${representativeWarn} fail=${representativeFail} elapsed=${elapsedSeconds.toFixed(3)}s`);
 console.log(`overall ${failures === 0 ? 'PASS' : 'FAIL'} failures=${failures}`);
 process.exit(failures === 0 ? 0 : 1);
 
@@ -94,6 +104,7 @@ function runGeneratedRepresentative({ group, seed, params }) {
     seed,
     minMoves: '-',
     expected: '-',
+    attempts: '-',
     status: 'PASS',
     reason: '',
     ms: 0,
@@ -101,11 +112,18 @@ function runGeneratedRepresentative({ group, seed, params }) {
 
   try {
     const stage = generateStage(params);
+    row.attempts = formatAttempts(stage.attempt, params.maxAttempts);
+    if (stage.attempt > params.maxAttempts * 0.5) {
+      row.status = 'WARN';
+    }
     row.minMoves = verifyBoard(stage.board, stage.minMoves);
     row.expected = stage.minMoves;
   } catch (error) {
     row.status = 'FAIL';
     row.reason = reasonFromError(error);
+    if (error instanceof GeneratorError) {
+      row.attempts = formatAttempts(params.maxAttempts, params.maxAttempts);
+    }
   } finally {
     row.ms = Date.now() - started;
   }
@@ -145,23 +163,15 @@ function reasonFromError(error) {
     return error.detail ? `${error.reason}:${error.detail}` : error.reason;
   }
   if (error instanceof GeneratorError) {
-    return 'limit';
+    return 'generator_max_attempts';
   }
   return error?.message ?? 'unknown';
 }
 
-class VerifyError extends Error {
-  constructor(reason, detail = '') {
-    super(detail ? `${reason}:${detail}` : reason);
-    this.reason = reason;
-    this.detail = detail;
-  }
-}
-
 function printStageTable(title, rows) {
   console.log(title);
-  console.log('group             id      seed       minMoves expected status reason ms');
-  console.log('----------------  ------  ---------  -------- -------- ------ ------ ---');
+  console.log('group             id      seed       minMoves expected attempts            status reason ms');
+  console.log('----------------  ------  ---------  -------- -------- ------------------ ------ ------ ---');
   for (const row of rows) {
     console.log([
       padRight(row.group, 16),
@@ -169,11 +179,16 @@ function printStageTable(title, rows) {
       padLeft(row.seed, 9),
       padLeft(row.minMoves, 8),
       padLeft(row.expected, 8),
+      padRight(row.attempts, 18),
       padRight(row.status, 6),
       padRight(row.reason, 6),
       padLeft(row.ms, 3),
     ].join('  '));
   }
+}
+
+function formatAttempts(attempt, maxAttempts) {
+  return `attempts ${attempt}/${maxAttempts}`;
 }
 
 function padLeft(value, width) {

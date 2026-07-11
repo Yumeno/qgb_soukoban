@@ -1,6 +1,6 @@
 # qgb 品質ゲート設計書 (qgb_soukoban)
 
-- 版: v0.3.1 (収録ステージを生成選抜方式に更新 + Codex 文書レビュー反映 2026-07-11)
+- 版: v0.3.2 (テストプレイ第1回フィードバックに基づく難易度向上ラウンドで正常ワークロードが増大したため契約タイムアウトを追従。ユーザー指示 2026-07-11)
 - 関連: [design.md](design.md) / [test-design.md](test-design.md)
 - 準拠: qgb スキル v0.1.5 / 段階設計パターン B (proposal/adopt 経路)
 
@@ -69,7 +69,16 @@ command authoring protocol(スキル §6.5)+ Node checklist(design-stages §5.5)
 | S3-solvability | `node tools\verify-stages.mjs --all` | exit 0 + per-stage 結果表を stdout(= stage log)に出力 |
 | S4-artifact | `node tools\check-artifacts.mjs` — ①index.html の script/link 参照の存在 ②相対 import graph の解決 ③**層分離検査: src/core が src/ui・document・window・localStorage を参照しないこと**(依存方向は ui→core のみ。Codex 指摘) | exit 0 |
 
-timeout_seconds: S3 は余裕を持って 300、他は 120(既定)。
+**timeout_seconds 現行値(`.quality-system/contracts/**/*.json` が正)**:
+
+| stage | timeout_seconds | 変更履歴 |
+|---|---|---|
+| S1-static | 120(既定のまま) | 変更なし |
+| S2-unit(CORE/SOLV 両 REQ) | **300**(旧 120) | 2026-07-11 難易度向上ラウンドでプリセット引き上げ(§末尾・design.md §7.1)により正常ワークロードの単体テスト所要時間が実測約 87 秒まで増大したため追従(qgb patch 経由で適用) |
+| S3-solvability | **600**(旧 300) | 同ラウンドで S3 の代表集合検証(`tools/verify-stages.mjs`)の所要時間が実測約 218 秒まで増大したため追従。あわせて curation の代表集合 `maxAttempts` を 2000 に、curate-stages 側のマスターシード数を 32→16・`maxAttempts=200` に調整(検査内容自体は変更なし、時間予算のみの追従) |
+| S4-artifact | 120(既定のまま) | 変更なし |
+
+これらの変更は**検査内容の弱体化ではない**(検査コマンド・期待 exit code は不変)。難易度プリセット引き上げに伴う正常ワークロードの増大に、契約のタイムアウト予算を追従させたものである。実測値に対して十分な余裕を持たせている(87秒→300秒、218秒→600秒。いずれも実測の2倍以上)。判断の記録は knowledge.jsonl にも残す(§7 参照)。
 
 ## 5. 証跡・履歴の方針(スキル §6.1 step 9 の設計分岐)
 

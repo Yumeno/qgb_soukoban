@@ -58,6 +58,16 @@ test('T-06: all embedded stages stay within solver size limits', () => {
   }
 });
 
+test('T-07: no embedded stage starts with a box on a goal', () => {
+  for (const stage of STAGES) {
+    const board = boardFor(stage);
+    for (const box of board.boxes) {
+      assert.equal(board.goals.has(box), false, `${stage.id}: box=${box}`);
+    }
+    assert.equal(stage.text.includes('*'), false, stage.id);
+  }
+});
+
 for (const stage of STAGES) {
   test(`embedded solver solution for ${stage.id} replays through Game.applyMoves`, { timeout: 5000 }, () => {
     const board = boardFor(stage);

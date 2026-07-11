@@ -3,13 +3,13 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serializeBoard } from '../src/core/board.js';
 import { generateStage, GeneratorError } from '../src/core/generator.js';
-import { checkStageQuality } from '../src/core/quality.js';
+import { checkStageQuality, countBoxSwitches } from '../src/core/quality.js';
 import { PARAM_LAYERS } from './param-layers.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT_FILE = resolve(ROOT, 'src/core/stages.js');
 
-const MASTER_SEEDS = Array.from({ length: 32 }, (_, i) => 0x5A17E000 + i * 0x101);
+const MASTER_SEEDS = Array.from({ length: 16 }, (_, i) => 0x5A17E000 + i * 0x101);
 
 const generated = [];
 const seenBoards = new Set();
@@ -24,7 +24,7 @@ for (let layerIndex = 0; layerIndex < PARAM_LAYERS.length; layerIndex += 1) {
   const layer = PARAM_LAYERS[layerIndex];
   for (let seedIndex = 0; seedIndex < MASTER_SEEDS.length; seedIndex += 1) {
     const seed = (MASTER_SEEDS[seedIndex] + layerIndex * 0x10000) >>> 0;
-    const params = { seed, ...layer, maxAttempts: 120 };
+    const params = { seed, ...layer, maxAttempts: 200 };
     try {
       const stage = generateStage(params);
       layerStats[layerIndex].generated += 1;
@@ -39,7 +39,7 @@ for (let layerIndex = 0; layerIndex < PARAM_LAYERS.length; layerIndex += 1) {
         continue;
       }
       seenBoards.add(text);
-      generated.push({ ...stage, text });
+      generated.push({ ...stage, text, boxSwitches: countBoxSwitches(stage.board, stage.solution) });
     } catch (error) {
       if (!(error instanceof GeneratorError)) {
         throw error;
@@ -138,6 +138,7 @@ function selectStages(candidates) {
 
 function compareCandidate(a, b) {
   return a.minMoves - b.minMoves
+    || b.boxSwitches - a.boxSwitches
     || a.board.boxes.size - b.board.boxes.size
     || a.board.width - b.board.width
     || a.board.height - b.board.height
@@ -198,7 +199,7 @@ function printLayerStats(stats) {
   console.log('----- --------- ----------- --------------- ------------------------------');
   stats.forEach((row, index) => {
     const layer = PARAM_LAYERS[index];
-    const params = `${layer.width}x${layer.height} boxes=${layer.boxCount} pullSteps=${layer.pullSteps} floor=${layer.minMovesFloor}`;
+    const params = `${layer.width}x${layer.height} boxes=${layer.boxCount} pullSteps=${layer.pullSteps} floor=${layer.minMovesFloor} wallDensity=${layer.wallDensity ?? 0.16}`;
     console.log(`${pad(index, 5)} ${pad(row.generated, 9)} ${pad(row.qualityPass, 11)} ${pad(row.generatorErrors, 15)} ${params}`);
   });
 }

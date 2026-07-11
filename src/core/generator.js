@@ -20,9 +20,9 @@ export class GeneratorError extends Error {
 }
 
 export const DIFFICULTY_PRESETS = {
-  easy: { width: 7, height: 5, boxCount: 1, pullSteps: 8, minMovesFloor: 2 },
-  normal: { width: 8, height: 6, boxCount: 2, pullSteps: 14, minMovesFloor: 5 },
-  hard: { width: 10, height: 7, boxCount: 3, pullSteps: 22, minMovesFloor: 8 },
+  easy: { width: 7, height: 5, boxCount: 1, pullSteps: 18, minMovesFloor: 10, wallDensity: 0.2, maxAttempts: 6000 },
+  normal: { width: 9, height: 7, boxCount: 3, pullSteps: 42, minMovesFloor: 20, wallDensity: 0.2, maxAttempts: 2500 },
+  hard: { width: 11, height: 9, boxCount: 4, pullSteps: 50, minMovesFloor: 22, wallDensity: 0.18, maxAttempts: 2500 },
 };
 
 export function generateStage(params) {
@@ -44,6 +44,9 @@ export function generateStage(params) {
     if (!game.won || game.log !== candidate.solution || game.moves !== candidate.solution.length) {
       continue;
     }
+    if (candidate.solution.length < normalized.minMovesFloor) {
+      continue;
+    }
 
     const solved = solve(candidate.board);
     if (solved.solvable !== true) {
@@ -53,6 +56,12 @@ export function generateStage(params) {
       continue;
     }
     if (!candidate.movedAnyBox) {
+      continue;
+    }
+    if (!candidate.movedAllBoxesFromGoals) {
+      continue;
+    }
+    if (hasAnyBoxOnGoal(candidate.board)) {
       continue;
     }
 
@@ -73,6 +82,7 @@ function normalizeParams(params) {
   const normalized = {
     maxAttempts: 100,
     minMovesFloor: 0,
+    wallDensity: 0.16,
     ...params,
   };
   for (const key of ['seed', 'width', 'height', 'boxCount', 'pullSteps', 'maxAttempts', 'minMovesFloor']) {
@@ -91,6 +101,12 @@ function normalizeParams(params) {
   }
   if (normalized.pullSteps < 0 || normalized.maxAttempts < 1 || normalized.minMovesFloor < 0) {
     throw new RangeError('generateStage: pullSteps, maxAttempts and minMovesFloor must be non-negative');
+  }
+  if (typeof normalized.wallDensity !== 'number' || !Number.isFinite(normalized.wallDensity)) {
+    throw new TypeError('generateStage: wallDensity must be a finite number');
+  }
+  if (normalized.wallDensity < 0 || normalized.wallDensity > 0.45) {
+    throw new RangeError('generateStage: wallDensity must be between 0 and 0.45');
   }
   return normalized;
 }
@@ -118,19 +134,31 @@ function buildCandidate(params, rng) {
     return null;
   }
 
-  const state = { width: params.width, height: params.height, walls, goals, boxes, player };
+  const boxIds = new Map();
+  const initialBoxes = [...boxes].sort((a, b) => a - b);
+  for (let id = 0; id < initialBoxes.length; id += 1) {
+    boxIds.set(initialBoxes[id], id);
+  }
+
+  const state = { width: params.width, height: params.height, walls, goals, boxes, boxIds, player };
   const reverseSteps = [];
   let movedAnyBox = false;
+  const unpulledBoxIds = new Set([...boxIds.values()]);
 
   for (let step = 0; step < params.pullSteps; step += 1) {
     const moves = reverseMoves(state);
     if (moves.length === 0) {
       break;
     }
-    const move = moves[Math.floor(rng() * moves.length)];
+    const priorityPulls = moves.filter((move) => move.kind === 'pull' && unpulledBoxIds.has(move.boxId));
+    const pool = priorityPulls.length > 0 ? priorityPulls : moves;
+    const move = pool[Math.floor(rng() * pool.length)];
     applyReverseMove(state, move);
     reverseSteps.push(move);
-    movedAnyBox ||= move.kind === 'pull';
+    if (move.kind === 'pull') {
+      movedAnyBox = true;
+      unpulledBoxIds.delete(move.boxId);
+    }
   }
 
   const firstPullIndex = reverseSteps.findIndex((move) => move.kind === 'pull');
@@ -140,6 +168,7 @@ function buildCandidate(params, rng) {
     board: cloneBoard(state),
     solution: effectiveReverseSteps.map((move) => move.forwardDir).reverse().join(''),
     movedAnyBox,
+    movedAllBoxesFromGoals: unpulledBoxIds.size === 0,
   };
 }
 
@@ -164,7 +193,7 @@ function generateConnectedRoom(params, rng) {
 
   const interiorArea = (width - 2) * (height - 2);
   const targetWalls = Math.min(
-    Math.floor(interiorArea * 0.16),
+    Math.floor(interiorArea * params.wallDensity),
     Math.max(0, interiorArea - params.boxCount - 8),
   );
   let added = 0;
@@ -209,6 +238,7 @@ function reverseMoves(board) {
     const boxIdx = toIndex(boxX, boxY, width);
     if (isInside(boxX, boxY, width, height)
       && boxes.has(boxIdx)
+      && !board.goals.has(player)
       && isFree(backX, backY, width, height, walls, boxes)) {
       moves.push({
         kind: 'pull',
@@ -216,6 +246,7 @@ function reverseMoves(board) {
         dy,
         boxFrom: boxIdx,
         boxTo: player,
+        boxId: board.boxIds.get(boxIdx),
         playerTo: toIndex(backX, backY, width),
         forwardDir: dir,
       });
@@ -233,6 +264,8 @@ function applyReverseMove(board, move) {
   }
   board.boxes.delete(move.boxFrom);
   board.boxes.add(move.boxTo);
+  board.boxIds.delete(move.boxFrom);
+  board.boxIds.set(move.boxTo, move.boxId);
   board.player = move.playerTo;
 }
 
@@ -283,8 +316,18 @@ function deriveSeed(params, attempt) {
   h = mix(h ^ (params.boxCount << 8));
   h = mix(h ^ (params.pullSteps << 12));
   h = mix(h ^ (params.minMovesFloor << 16));
+  h = mix(h ^ Math.floor(params.wallDensity * 1000));
   h = mix(h ^ Math.imul(attempt, 0x9E3779B1));
   return h >>> 0;
+}
+
+function hasAnyBoxOnGoal(board) {
+  for (const box of board.boxes) {
+    if (board.goals.has(box)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function mix(value) {
