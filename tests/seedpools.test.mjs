@@ -78,3 +78,15 @@ test('SP-03: pooled seeds are unique globally', () => {
 test('SP-04: baked pool hash is deterministic', () => {
   assert.equal(hashPools(SEED_POOLS), SEED_POOL_HASH);
 });
+
+test('SP-05: sampled entries have baked solver-derived optimalSolution', { timeout: 120000 }, () => {
+  for (const difficulty of DIFFICULTIES) {
+    for (const entry of sampleEntries(SEED_POOLS[difficulty])) {
+      const stage = generateStage({ ...entry.params, seed: entry.seed });
+      const solved = solve(stage.board);
+      assert.equal(solved.solvable, true, `${difficulty} seed=${entry.seed}`);
+      assert.equal(entry.optimalSolution, solved.solution, `${difficulty} seed=${entry.seed}`);
+      assert.equal(entry.optimalSolution.length, solved.minMoves, `${difficulty} seed=${entry.seed}`);
+    }
+  }
+});

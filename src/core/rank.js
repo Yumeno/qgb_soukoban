@@ -5,7 +5,7 @@ const RANKS = {
   C: { grade: 'C', label: '可' },
 };
 
-export function computeRank(moves, minMoves) {
+export function computeRank(moves, minMoves, { solutionViewed = false } = {}) {
   validateInput(moves, minMoves);
 
   const thresholds = {
@@ -14,6 +14,9 @@ export function computeRank(moves, minMoves) {
     B: minMoves + Math.max(5, Math.ceil(minMoves * 0.30)),
   };
 
+  if (moves === thresholds.S && solutionViewed) {
+    return { ...rankResult('A', { ...RANKS.S, maxMoves: thresholds.S }), cappedByViewing: true };
+  }
   if (moves === thresholds.S) {
     return rankResult('S', null);
   }

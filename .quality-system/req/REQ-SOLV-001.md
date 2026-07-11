@@ -12,6 +12,7 @@
 - ソルバー内部が展開する合法遷移の集合が `game.js` の move 判定と完全一致する(遷移同値性。違法手の許容・合法手の見落としを両方検出)
 - 収録 10 面は全数がソルバーで solvable=true であり、焼き込み `minMoves` はソルバー再計算値と一致する(手書き値の混入防止)
 - 生成面は逆押し(pull)による構成的可解性保証に加え、固定シード代表集合の回帰検査で担保される
+- **模範解の真正性**(REQ-SAVE-001 との連携。issue #1 対応、2026-07-12 追加): 焼き込み `optimalSolution` は (a) 初期盤面に適用すると勝利到達 (b) 手順長 `===` `minMoves`(=本当に最短、ソルバー再計算値と一致)する。これは収録面(T-13)・シードプール(SP-05)の両方が対象であり、`optimalSolution` が**ソルバー(move-BFS)由来の最短解**であることを保証する。生成器が構成時に持つ「証明解」(逆押し pull から構成された解、必ずしも最短ではない)とは別物であり、収録・配布データとしては採用しない
 
 ## acceptance criteria (test-design.md 参照)
 
@@ -21,7 +22,9 @@
 - **generator.test.mjs**(N 系): N-01, N-02, N-03, N-04, N-05, N-06, N-07(実装後に S2-unit 対象へ追加。2026-07-11 現在は generator.js 未実装のため対象外)
 - **stages.test.mjs**(T 系): T-01, T-02, T-03, T-04, T-05, T-06(実装後に S2-unit 対象へ追加。2026-07-11 現在は stages.js の生成選抜運用が未実装のため対象外)
 - **quality.test.mjs**(Q 系): Q-01, Q-02, Q-03(実装後に S2-unit 対象へ追加。同上の理由で現在は対象外)
-- **S3-solvability ゲート**: 独立スクリプト(`tools/verify-stages.mjs`)による収録全ステージ・固定シード生成ステージの可解性・最短手数整合の検証(gate.json + stage log として再現可能な証跡を残す。P7)
+- **stages.test.mjs**: T-13(焼き込み `optimalSolution` の真正性。適用で勝利到達 && 手順長 === ソルバー再計算 `minMoves`。実装後に S2-unit 対象へ追加)
+- **generator.test.mjs / pool 系**: SP-05(シードプールの `optimalSolution` 真正性。各エントリで適用勝利到達 && 手順長 === ソルバー再計算 `minMoves`。実装後に S2-unit 対象へ追加)
+- **S3-solvability ゲート**: 独立スクリプト(`tools/verify-stages.mjs`)による収録全ステージ・固定シード生成ステージの可解性・最短手数整合の検証(gate.json + stage log として再現可能な証跡を残す。P7)。2026-07-12 追加: per-stage 結果表に `optLen==minMoves` 列を追加し、収録面は全数、シードプールは各難易度から固定 10 エントリを抽出して同様に検証する(全数検証はビルド時パイプラインの責務)
 
 注: N/T/Q 系テストは design.md §7.1 の生成選抜運用に対応するテストファイルで、2026-07-11 時点では generator.js/stages.js の生成選抜機能自体が未実装のため `tests/` に存在しない。実装完了後、本 REQ の acceptance criteria として S2-unit ゲートの対象に組み込む(test-design.md §3.4/3.5/3.7 参照)。
 

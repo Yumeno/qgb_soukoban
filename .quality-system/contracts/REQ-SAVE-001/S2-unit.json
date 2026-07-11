@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0",
+  "req_id": "REQ-SAVE-001",
+  "stage_id": "S2-unit",
+  "verification_type": "command",
+  "runtime": "node",
+  "command": [
+    "node",
+    "--test"
+  ],
+  "expected_exit_code": 0,
+  "timeout_seconds": 600
+}

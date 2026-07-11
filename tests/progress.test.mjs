@@ -1,142 +1,155 @@
-// クリア記録の純粋直列化モジュールのテスト (docs/test-design.md §3.6 R-04/R-05)
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  boardHash,
+  clearAllProgress,
   createEmptyProgress,
-  serializeProgress,
   deserializeProgress,
+  filterValidRandomHistory,
+  invalidateStaleRecords,
+  markSolutionViewed,
   mergeClearRecord,
+  recordRandomPlay,
+  resetClearRecords,
+  serializeProgress,
 } from '../src/core/progress.js';
 
-// R-04: serialize → deserialize 往復
-test('R-04: serialize→deserialize 往復で bestMoves/replay/clearedAt が保存される', () => {
+const BOARD_A = '#####\n#@$.#\n#####';
+const BOARD_B = '#####\n#@ $.#\n#####';
+
+test('progress v2 serializes and deserializes stages plus random history', () => {
   const empty = createEmptyProgress();
-  assert.deepEqual(empty, { version: 1, stages: {} });
+  assert.deepEqual(empty, { version: 2, stages: {}, randomHistory: [] });
 
+  const hash = boardHash(BOARD_A);
   const progress = mergeClearRecord(empty, 'stage1', {
-    moves: 42,
-    replay: 'UDLR',
+    moves: 4,
+    replay: 'RRRR',
     clearedAt: '2026-07-11T00:00:00Z',
+    boardHash: hash,
   });
-  const json = serializeProgress(progress);
-  assert.equal(typeof json, 'string');
-
-  const restored = deserializeProgress(json);
-  assert.equal(restored.version, 1);
+  const restored = deserializeProgress(serializeProgress(progress));
+  assert.equal(restored.version, 2);
   assert.equal(restored.stages.stage1.cleared, true);
-  assert.equal(restored.stages.stage1.bestMoves, 42);
-  assert.equal(restored.stages.stage1.replay, 'UDLR');
-  assert.equal(restored.stages.stage1.clearedAt, '2026-07-11T00:00:00Z');
+  assert.equal(restored.stages.stage1.bestMoves, 4);
+  assert.equal(restored.stages.stage1.replay, 'RRRR');
+  assert.equal(restored.stages.stage1.boardHash, hash);
+  assert.deepEqual(restored.randomHistory, []);
 });
 
-test('R-04: 壊れた JSON は初期状態を返す (throw しない)', () => {
-  const restored = deserializeProgress('{broken json!!');
-  assert.deepEqual(restored, { version: 1, stages: {} });
+test('v1, broken JSON and unknown versions return initial v2 state', () => {
+  const empty = { version: 2, stages: {}, randomHistory: [] };
+  assert.deepEqual(deserializeProgress('{broken'), empty);
+  assert.deepEqual(deserializeProgress(JSON.stringify({ version: 1, stages: { s: {} } })), empty);
+  assert.deepEqual(deserializeProgress(JSON.stringify({ version: 999, stages: {} })), empty);
+  assert.deepEqual(deserializeProgress(null), empty);
 });
 
-test('R-04: version 不一致は初期状態を返す', () => {
-  const restored = deserializeProgress(JSON.stringify({ version: 999, stages: { s: { cleared: true } } }));
-  assert.deepEqual(restored, { version: 1, stages: {} });
+test('boardHash is deterministic and distinguishes board text', () => {
+  assert.equal(boardHash(BOARD_A), boardHash(BOARD_A));
+  assert.notEqual(boardHash(BOARD_A), boardHash(BOARD_B));
 });
 
-test('R-04: null や非オブジェクトの JSON は初期状態を返す', () => {
-  assert.deepEqual(deserializeProgress('null'), { version: 1, stages: {} });
-  assert.deepEqual(deserializeProgress('"text"'), { version: 1, stages: {} });
-  assert.deepEqual(deserializeProgress(null), { version: 1, stages: {} });
-});
-
-// R-05: mergeClearRecord のベスト記録更新規則
-test('R-05: 未クリアのステージは記録が新規作成され cleared: true が立つ', () => {
-  const progress = mergeClearRecord(createEmptyProgress(), 'stage1', {
-    moves: 50,
-    replay: 'RRRR',
-    clearedAt: '2026-07-11T01:00:00Z',
-  });
-  const rec = progress.stages.stage1;
-  assert.equal(rec.cleared, true);
-  assert.equal(rec.bestMoves, 50);
-  assert.equal(rec.replay, 'RRRR');
-  assert.equal(rec.clearedAt, '2026-07-11T01:00:00Z');
-});
-
-test('R-05: bestMoves は改善時のみ更新され、replay/clearedAt も同時更新される', () => {
-  let progress = mergeClearRecord(createEmptyProgress(), 'stage1', {
-    moves: 50,
-    replay: 'RRRR',
-    clearedAt: '2026-07-11T01:00:00Z',
-  });
-  // 改善 (50 → 40): bestMoves/replay/clearedAt すべて更新
+test('invalidateStaleRecords removes only mismatched stage records', () => {
+  let progress = createEmptyProgress();
+  progress = markSolutionViewed(progress, 'stage1', boardHash(BOARD_A));
   progress = mergeClearRecord(progress, 'stage1', {
-    moves: 40,
-    replay: 'UUUU',
-    clearedAt: '2026-07-11T02:00:00Z',
-  });
-  assert.equal(progress.stages.stage1.bestMoves, 40);
-  assert.equal(progress.stages.stage1.replay, 'UUUU');
-  assert.equal(progress.stages.stage1.clearedAt, '2026-07-11T02:00:00Z');
-});
-
-test('R-05: 悪化時は既存の bestMoves/replay/clearedAt を維持する', () => {
-  let progress = mergeClearRecord(createEmptyProgress(), 'stage1', {
-    moves: 40,
-    replay: 'UUUU',
-    clearedAt: '2026-07-11T02:00:00Z',
-  });
-  // 悪化 (40 → 60): 既存を維持
-  progress = mergeClearRecord(progress, 'stage1', {
-    moves: 60,
-    replay: 'DDDD',
-    clearedAt: '2026-07-11T03:00:00Z',
-  });
-  assert.equal(progress.stages.stage1.bestMoves, 40);
-  assert.equal(progress.stages.stage1.replay, 'UUUU');
-  assert.equal(progress.stages.stage1.clearedAt, '2026-07-11T02:00:00Z');
-  assert.equal(progress.stages.stage1.cleared, true);
-});
-
-test('R-05: 同値 (moves == bestMoves) の場合も既存を維持する(改善時のみ更新)', () => {
-  let progress = mergeClearRecord(createEmptyProgress(), 'stage1', {
-    moves: 40,
-    replay: 'UUUU',
-    clearedAt: '2026-07-11T02:00:00Z',
-  });
-  progress = mergeClearRecord(progress, 'stage1', {
-    moves: 40,
-    replay: 'LLLL',
-    clearedAt: '2026-07-11T04:00:00Z',
-  });
-  assert.equal(progress.stages.stage1.replay, 'UUUU');
-  assert.equal(progress.stages.stage1.clearedAt, '2026-07-11T02:00:00Z');
-});
-
-test('R-05: mergeClearRecord は immutable(元の progress を変更しない)', () => {
-  const before = mergeClearRecord(createEmptyProgress(), 'stage1', {
-    moves: 50,
+    moves: 4,
     replay: 'RRRR',
-    clearedAt: '2026-07-11T01:00:00Z',
+    clearedAt: '2026-07-11T00:00:00Z',
+    boardHash: boardHash(BOARD_A),
   });
-  const beforeJson = serializeProgress(before);
-  const after = mergeClearRecord(before, 'stage1', {
-    moves: 10,
-    replay: 'UU',
-    clearedAt: '2026-07-11T05:00:00Z',
-  });
-  assert.equal(serializeProgress(before), beforeJson, '元の progress は不変');
-  assert.equal(after.stages.stage1.bestMoves, 10);
-  assert.notEqual(before, after);
+  progress = markSolutionViewed(progress, 'stage2', boardHash(BOARD_B));
+
+  const next = invalidateStaleRecords(progress, [
+    { id: 'stage1', text: BOARD_B },
+    { id: 'stage2', text: BOARD_B },
+  ]);
+
+  assert.equal(next.stages.stage1, undefined);
+  assert.equal(next.stages.stage2.solutionViewed, true);
 });
 
-test('R-05: 別ステージの記録は影響を受けない', () => {
-  let progress = mergeClearRecord(createEmptyProgress(), 'stage1', {
-    moves: 30,
+test('resetClearRecords preserves solutionViewed and random history, clearAllProgress removes all', () => {
+  let progress = createEmptyProgress();
+  progress = markSolutionViewed(progress, 'stage1', boardHash(BOARD_A));
+  progress = mergeClearRecord(progress, 'stage1', {
+    moves: 4,
+    replay: 'RRRR',
+    clearedAt: '2026-07-11T00:00:00Z',
+    boardHash: boardHash(BOARD_A),
+  });
+  progress = recordRandomPlay(progress, {
+    seed: 123,
+    difficulty: 'easy',
+    params: { width: 5 },
+    boardHash: boardHash(BOARD_B),
+    minMoves: 2,
+    cleared: true,
+    bestMoves: 2,
     replay: 'RR',
     clearedAt: '2026-07-11T01:00:00Z',
   });
-  progress = mergeClearRecord(progress, 'stage2', {
-    moves: 99,
-    replay: 'DDDD',
-    clearedAt: '2026-07-11T02:00:00Z',
+
+  const reset = resetClearRecords(progress);
+  assert.deepEqual(reset.stages.stage1, { solutionViewed: true, boardHash: boardHash(BOARD_A) });
+  assert.equal(reset.randomHistory.length, 1);
+  assert.equal(reset.randomHistory[0].cleared, undefined);
+  assert.equal(reset.randomHistory[0].bestMoves, undefined);
+  assert.deepEqual(clearAllProgress(progress), createEmptyProgress());
+});
+
+test('mergeClearRecord and recordRandomPlay preserve solutionViewed', () => {
+  let progress = markSolutionViewed(createEmptyProgress(), 'stage1', boardHash(BOARD_A));
+  progress = mergeClearRecord(progress, 'stage1', {
+    moves: 4,
+    replay: 'RRRR',
+    clearedAt: '2026-07-11T00:00:00Z',
+    boardHash: boardHash(BOARD_A),
   });
-  assert.equal(progress.stages.stage1.bestMoves, 30);
-  assert.equal(progress.stages.stage2.bestMoves, 99);
+  assert.equal(progress.stages.stage1.solutionViewed, true);
+
+  progress = recordRandomPlay(progress, {
+    seed: 123,
+    difficulty: 'easy',
+    params: { width: 5 },
+    boardHash: boardHash(BOARD_B),
+    minMoves: 3,
+    solutionViewed: true,
+  });
+  progress = recordRandomPlay(progress, {
+    seed: 123,
+    difficulty: 'easy',
+    params: { width: 5 },
+    boardHash: boardHash(BOARD_B),
+    minMoves: 3,
+    cleared: true,
+    bestMoves: 3,
+    replay: 'RRR',
+    clearedAt: '2026-07-11T01:00:00Z',
+  });
+  assert.equal(progress.randomHistory.length, 1);
+  assert.equal(progress.randomHistory[0].solutionViewed, true);
+  assert.equal(progress.randomHistory[0].bestMoves, 3);
+});
+
+test('filterValidRandomHistory keeps entries whose regenerated board hash matches', () => {
+  let progress = createEmptyProgress();
+  progress = recordRandomPlay(progress, {
+    seed: 1,
+    difficulty: 'easy',
+    params: { width: 5 },
+    boardHash: boardHash(BOARD_A),
+    minMoves: 4,
+  });
+  progress = recordRandomPlay(progress, {
+    seed: 2,
+    difficulty: 'easy',
+    params: { width: 5 },
+    boardHash: boardHash(BOARD_B),
+    minMoves: 5,
+  });
+
+  const valid = filterValidRandomHistory(progress, (entry) => (entry.seed === 1 ? BOARD_A : BOARD_A));
+  assert.deepEqual(valid.map((entry) => entry.seed), [1]);
 });

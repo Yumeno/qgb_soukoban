@@ -211,6 +211,32 @@ h2 {
   min-height: auto;
 }
 
+.history-card,
+.reset-card {
+  grid-column: 1 / -1;
+}
+
+.history-list {
+  display: grid;
+  gap: 8px;
+}
+
+.history-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  color: var(--color-paper);
+  text-align: left;
+}
+
+.viewed-mark {
+  color: var(--color-stamp);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
 .random-controls {
   display: flex;
   flex-wrap: wrap;

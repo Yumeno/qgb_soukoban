@@ -5,8 +5,7 @@ import {
   serializeProgress,
 } from '../core/progress.js';
 
-export const STORAGE_KEY = 'qgb-soukoban/v1';
-const REPLAY_PATTERN = /^[UDLR]*$/;
+export const STORAGE_KEY = 'qgb-soukoban/v2';
 
 export const storageAdapter = {
   disabled: false,
@@ -48,7 +47,7 @@ export function loadProgress() {
     return createEmptyProgress();
   }
   try {
-    return validateProgressRecords(deserializeProgress(storageAdapter.getItem(STORAGE_KEY)));
+    return deserializeProgress(storageAdapter.getItem(STORAGE_KEY));
   } catch {
     return createEmptyProgress();
   }
@@ -68,28 +67,4 @@ export function saveClearRecord(progress, stageId, record) {
     saved: saveProgress(next),
     storageDisabled: storageAdapter.disabled,
   };
-}
-
-function validateProgressRecords(progress) {
-  const next = createEmptyProgress();
-  for (const [stageId, record] of Object.entries(progress.stages)) {
-    if (isValidRecord(record)) {
-      next.stages[stageId] = record;
-    }
-  }
-  return next;
-}
-
-function isValidRecord(record) {
-  return (
-    record !== null &&
-    typeof record === 'object' &&
-    !Array.isArray(record) &&
-    record.cleared === true &&
-    Number.isSafeInteger(record.bestMoves) &&
-    record.bestMoves >= 0 &&
-    typeof record.replay === 'string' &&
-    REPLAY_PATTERN.test(record.replay) &&
-    typeof record.clearedAt === 'string'
-  );
 }

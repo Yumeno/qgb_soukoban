@@ -4,6 +4,7 @@ import { DIFFICULTY_PRESETS, generateStage, GeneratorError } from '../src/core/g
 import { computeStageMetrics } from '../src/core/metrics.js';
 import { solve } from '../src/core/solver.js';
 import { STAGES } from '../src/core/stages.js';
+import { SEED_POOLS } from '../src/core/seedpools.js';
 import { PARAM_LAYERS } from './param-layers.mjs';
 
 const DIFFICULTY_SEEDS = Array.from({ length: 5 }, (_, i) => 0x51f15e00 + i);
@@ -40,6 +41,7 @@ for (const stage of STAGES) {
     ratio: '-',
     score: stage.metrics?.score ?? '-',
     expected: stage.minMoves,
+    optimal: '-',
     attempts: '-',
     status: 'PASS',
     reason: '',
@@ -48,7 +50,7 @@ for (const stage of STAGES) {
 
   try {
     const board = parseBoard(stage.text);
-    const result = verifyBoard(board, stage.minMoves, stage.metrics);
+    const result = verifyBoard(board, stage.minMoves, stage.metrics, stage.optimalSolution);
     Object.assign(row, result);
   } catch (error) {
     row.status = 'FAIL';
@@ -90,6 +92,20 @@ for (const row of representativeRows) {
   }
 }
 
+const poolRows = [];
+for (const difficulty of DIFFICULTIES) {
+  const entries = sampleEntries(SEED_POOLS[difficulty] ?? [], 10);
+  for (const entry of entries) {
+    poolRows.push(runPoolRepresentative(difficulty, entry));
+  }
+}
+
+for (const row of poolRows) {
+  if (row.status === 'FAIL') {
+    failures += 1;
+  }
+}
+
 const representativePass = representativeRows.filter((row) => row.status === 'PASS').length;
 const representativeWarn = representativeRows.filter((row) => row.status === 'WARN').length;
 const representativeFail = representativeRows.filter((row) => row.status === 'FAIL').length;
@@ -98,6 +114,8 @@ const elapsedSeconds = (Date.now() - overallStarted) / 1000;
 printStageTable('embedded per-stage', stageRows);
 console.log('');
 printStageTable('representative per-stage', representativeRows);
+console.log('');
+printStageTable('seed-pool sample', poolRows);
 console.log('');
 console.log(`representative total=${representativeRows.length} pass=${representativePass} warn=${representativeWarn} fail=${representativeFail} elapsed=${elapsedSeconds.toFixed(3)}s`);
 console.log(`overall ${failures === 0 ? 'PASS' : 'FAIL'} failures=${failures}`);
@@ -116,6 +134,7 @@ function runGeneratedRepresentative({ group, seed, params }) {
     ratio: '-',
     score: '-',
     expected: '-',
+    optimal: '-',
     attempts: '-',
     status: 'PASS',
     reason: '',
@@ -145,7 +164,41 @@ function runGeneratedRepresentative({ group, seed, params }) {
   return row;
 }
 
-function verifyBoard(board, expectedMinMoves, expectedMetrics = null) {
+function runPoolRepresentative(difficulty, entry) {
+  const started = Date.now();
+  const row = {
+    group: `pool:${difficulty}`,
+    id: '-',
+    seed: entry?.seed ?? '-',
+    minMoves: '-',
+    minPushes: '-',
+    boxChanges: '-',
+    maxPhiBarrier: '-',
+    ratio: '-',
+    score: '-',
+    expected: entry?.minMoves ?? '-',
+    optimal: '-',
+    attempts: '-',
+    status: 'PASS',
+    reason: '',
+    ms: 0,
+  };
+
+  try {
+    const stage = generateStage({ ...entry.params, seed: entry.seed });
+    const result = verifyBoard(stage.board, entry.minMoves, null, entry.optimalSolution);
+    Object.assign(row, result);
+  } catch (error) {
+    row.status = 'FAIL';
+    row.reason = reasonFromError(error);
+  } finally {
+    row.ms = Date.now() - started;
+  }
+
+  return row;
+}
+
+function verifyBoard(board, expectedMinMoves, expectedMetrics = null, expectedOptimalSolution = null) {
   const validation = validateBoard(board);
   if (!validation.ok) {
     throw new VerifyError('validate_failed', validation.errors.map((error) => error.code).join(','));
@@ -157,6 +210,11 @@ function verifyBoard(board, expectedMinMoves, expectedMetrics = null) {
   }
   if (solved.minMoves !== expectedMinMoves) {
     throw new VerifyError('minmoves_mismatch', `${solved.minMoves} != ${expectedMinMoves}`);
+  }
+  if (expectedOptimalSolution !== null && expectedOptimalSolution !== undefined) {
+    if (expectedOptimalSolution !== solved.solution) {
+      throw new VerifyError('optimal_mismatch', `${expectedOptimalSolution?.length ?? '-'} != ${solved.minMoves}`);
+    }
   }
 
   const game = new Game(board);
@@ -190,6 +248,9 @@ function verifyBoard(board, expectedMinMoves, expectedMetrics = null) {
     boxChanges: metrics.boxChanges,
     maxPhiBarrier: metrics.maxPhiBarrier,
     ratio: roundMetric(metrics.movesPushesRatio),
+    optimal: expectedOptimalSolution === null || expectedOptimalSolution === undefined
+      ? '-'
+      : (expectedOptimalSolution.length === solved.minMoves ? 'yes' : 'no'),
   };
 }
 
@@ -211,8 +272,8 @@ function reasonFromError(error) {
 
 function printStageTable(title, rows) {
   console.log(title);
-  console.log('group             id      seed       moves pushes changes phi ratio score attempts            status reason ms');
-  console.log('----------------  ------  ---------  ----- ------ ------- --- ----- ----- ------------------ ------ ------ ---');
+  console.log('group             id      seed       moves pushes changes phi ratio score optLen==minMoves attempts            status reason ms');
+  console.log('----------------  ------  ---------  ----- ------ ------- --- ----- ----- --------------- ------------------ ------ ------ ---');
   for (const row of rows) {
     console.log([
       padRight(row.group, 16),
@@ -224,12 +285,25 @@ function printStageTable(title, rows) {
       padLeft(row.maxPhiBarrier, 3),
       padLeft(row.ratio, 5),
       padLeft(row.score, 5),
+      padLeft(row.optimal, 15),
       padRight(row.attempts, 18),
       padRight(row.status, 6),
       padRight(row.reason, 6),
       padLeft(row.ms, 3),
     ].join('  '));
   }
+}
+
+function sampleEntries(entries, count) {
+  if (entries.length <= count) {
+    return entries;
+  }
+  const last = entries.length - 1;
+  const indexes = new Set();
+  for (let i = 0; i < count; i += 1) {
+    indexes.add(Math.round((i * last) / (count - 1)));
+  }
+  return [...indexes].sort((a, b) => a - b).map((index) => entries[index]);
 }
 
 function formatAttempts(attempt, maxAttempts) {

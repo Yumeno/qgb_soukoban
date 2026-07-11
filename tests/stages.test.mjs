@@ -143,6 +143,18 @@ for (const stage of STAGES) {
   });
 }
 
+for (const stage of STAGES) {
+  test(`T-13: ${stage.id} baked optimalSolution is solver-derived shortest replay`, { timeout: 5000 }, () => {
+    const board = boardFor(stage);
+    const solved = solve(board);
+    assert.equal(stage.optimalSolution, solved.solution, `${stage.id}: optimalSolution`);
+    assert.equal(stage.optimalSolution.length, solved.minMoves, `${stage.id}: optimalSolution length`);
+    const game = new Game(board);
+    game.applyMoves(stage.optimalSolution);
+    assert.equal(game.won, true, `${stage.id}: replay won`);
+  });
+}
+
 function structuralSignature(stage, board) {
   const metrics = stage.metrics;
   return [

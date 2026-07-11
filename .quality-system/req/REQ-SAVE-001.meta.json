@@ -1,0 +1,17 @@
+{
+  "schema_version": "1.0",
+  "req_id": "REQ-SAVE-001",
+  "title": "保存された記録は参照先の盤面と常に整合し、初期化操作は宣言した範囲だけを消す",
+  "stages": [
+    {
+      "stage_id": "S1-static",
+      "contract_ref": ".quality-system/contracts/REQ-SAVE-001/S1-static.json",
+      "required": true
+    },
+    {
+      "stage_id": "S2-unit",
+      "contract_ref": ".quality-system/contracts/REQ-SAVE-001/S2-unit.json",
+      "required": true
+    }
+  ]
+}

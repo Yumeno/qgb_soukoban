@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { serializeBoard } from '../src/core/board.js';
 import { generateStage, GeneratorError } from '../src/core/generator.js';
 import { checkStageQuality } from '../src/core/quality.js';
+import { solve } from '../src/core/solver.js';
 import { PARAM_LAYERS } from './param-layers.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -416,11 +417,16 @@ function compareOrdinal(a, b) {
 function renderStages(stages) {
   const entries = stages.map((stage, index) => {
     const id = `stage${String(index + 1).padStart(2, '0')}`;
+    const solved = solve(stage.board);
+    if (solved.solvable !== true) {
+      throw new Error(`curate-stages: selected ${id} is not solvable`);
+    }
     return `  {
     id: ${JSON.stringify(id)},
     name: ${JSON.stringify(`Stage ${index + 1}`)},
     text: ${JSON.stringify(stage.text)},
     minMoves: ${stage.minMoves},
+    optimalSolution: ${JSON.stringify(solved.solution)},
     metrics: ${JSON.stringify(renderedMetrics(stage))},
     policy: ${JSON.stringify(stage.policy)},
     seed: ${stage.seed},

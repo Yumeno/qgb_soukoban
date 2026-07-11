@@ -165,6 +165,7 @@ function verifySeed(difficulty, seed) {
     minPushes: metrics.minPushes,
     maxPhiBarrier: metrics.maxPhiBarrier,
     minMoves: stage.minMoves,
+    optimalSolution: solved.solution,
   };
 }
 

@@ -1,11 +1,21 @@
-import { parseBoard } from '../core/board.js';
+import { parseBoard, serializeBoard } from '../core/board.js';
 import { Game } from '../core/game.js';
 import { generateStage, DIFFICULTY_PRESETS } from '../core/generator.js';
+import {
+  boardHash,
+  clearAllProgress,
+  filterValidRandomHistory,
+  invalidateStaleRecords,
+  markRandomSolutionViewed,
+  markSolutionViewed,
+  recordRandomPlay,
+  resetClearRecords,
+} from '../core/progress.js';
 import { computeRank } from '../core/rank.js';
 import { SEED_POOLS } from '../core/seedpools.js';
 import { STAGES } from '../core/stages.js';
 import { renderBoard } from './render.js';
-import { loadProgress, saveClearRecord } from './storage.js';
+import { loadProgress, saveClearRecord, saveProgressState } from './storage.js';
 
 const app = document.querySelector('#app');
 const KEY_TO_DIR = {
@@ -24,7 +34,7 @@ const KEY_TO_DIR = {
 };
 const CLEAR_OVERLAY_DELAY_MS = 700;
 
-let progress = loadProgress();
+let progress = invalidateStaleRecords(loadProgress(), STAGES);
 let screen = 'menu';
 let game = null;
 let currentStage = null;
@@ -69,7 +79,7 @@ function stageGrid() {
     card.append(textEl('div', 'card-title', `${numberLabel(index + 1)} ${stage.name}`));
     card.append(textEl('div', 'card-meta', `最短 ${stage.minMoves} 手`));
     if (record?.cleared) {
-      const rank = safeRank(record.bestMoves, stage.minMoves);
+      const rank = safeRank(record.bestMoves, stage.minMoves, record.solutionViewed === true);
       card.append(textEl('div', 'stamp-small', '検印'));
       if (rank) {
         card.append(rankBadge(rank));
@@ -77,6 +87,9 @@ function stageGrid() {
       card.append(textEl('div', 'card-meta', `自己ベスト ${record.bestMoves} 手`));
     } else {
       card.append(textEl('div', 'card-meta', '未出荷'));
+    }
+    if (record?.solutionViewed) {
+      card.append(textEl('div', 'viewed-mark', '模範視聴済み'));
     }
     card.addEventListener('click', () => startStage(stage, index));
     grid.append(card);
@@ -109,6 +122,20 @@ function stageGrid() {
   random.append(controls);
   grid.append(random);
 
+  const history = randomHistoryPanel();
+  if (history) {
+    grid.append(history);
+  }
+
+  const reset = document.createElement('div');
+  reset.className = 'stage-card random-card reset-card';
+  reset.append(textEl('div', 'card-title', '記録管理'));
+  reset.append(actions([
+    ['クリア記録の初期化', resetClears],
+    ['記録の全消去', clearEverything],
+  ]));
+  grid.append(reset);
+
   return grid;
 }
 
@@ -122,6 +149,8 @@ function startStage(stage, index) {
     text: stage.text,
     initialBoard: parseBoard(stage.text),
     minMoves: stage.minMoves,
+    optimalSolution: stage.optimalSolution,
+    boardHash: boardHash(stage.text),
   };
   game = new Game(currentStage.initialBoard);
   lastClearLog = '';
@@ -136,6 +165,14 @@ function startRandom(difficulty) {
   try {
     const { entry, generated } = generateRandomFromPool(difficulty);
     currentStage = randomStageState(difficulty, entry, generated);
+    progress = recordRandomPlay(progress, {
+      seed: currentStage.seed,
+      difficulty: currentStage.difficulty,
+      params: currentStage.params,
+      boardHash: currentStage.boardHash,
+      minMoves: currentStage.minMoves,
+    });
+    handleSaveResult(saveProgressState(progress));
     game = new Game(generated.board);
     lastClearLog = '';
     clearPreviousBest = null;
@@ -183,22 +220,26 @@ function pickSeedPoolEntry(difficulty) {
 }
 
 function randomStageState(difficulty, entry, generated) {
+  const text = serializeBoard(generated.board);
   return {
     kind: 'random',
     index: null,
     id: `random-${entry.seed}`,
     name: `Random ${difficulty}`,
-    text: null,
+    text,
     initialBoard: generated.board,
     minMoves: entry.minMoves,
+    optimalSolution: entry.optimalSolution,
+    boardHash: boardHash(text),
     seed: entry.seed,
     difficulty,
+    params: entry.params,
   };
 }
 
 function renderGame() {
   screen = 'game';
-  const record = currentStage.kind === 'fixed' ? progress.stages[currentStage.id] : null;
+  const record = currentStageRecord();
   const best = record?.bestMoves ?? null;
   const showClear = clearOverlayVisible && game.won && !replay;
   const nodes = [
@@ -232,7 +273,14 @@ function gameView(best) {
       renderGame();
     }],
   ];
-  const savedReplay = currentStage.kind === 'fixed' ? progress.stages[currentStage.id]?.replay : null;
+  const savedReplay = currentStageRecord()?.replay ?? null;
+  const viewed = currentStageRecord()?.solutionViewed === true;
+  if (isValidReplayLog(currentStage.optimalSolution)) {
+    sideActions.push([
+      viewed ? '模範リプレイを再生' : '模範リプレイを見る',
+      viewOptimalReplay,
+    ]);
+  }
   if (isValidReplayLog(savedReplay)) {
     sideActions.push(['保存リプレイ', () => startReplay(savedReplay)]);
   } else if (savedReplay !== null && savedReplay !== undefined) {
@@ -257,7 +305,10 @@ function ticket(best) {
   lines.append(ticketRow('MOVES', String(game.moves)));
   lines.append(ticketRow('MIN', String(currentStage.minMoves)));
   lines.append(ticketRow('BEST', best === null ? '-' : String(best)));
-  if (currentStage.kind === 'random') {
+  if (currentStageRecord()?.solutionViewed) {
+    lines.append(ticketRow('SOLUTION', 'VIEWED'));
+  }
+  if (false && currentStage.kind === 'random') {
     lines.append(ticketRow('SEED', String(currentStage.seed)));
   }
   node.append(lines);
@@ -265,7 +316,9 @@ function ticket(best) {
 }
 
 function clearOverlay(previousBest) {
-  const rank = computeRank(game.moves, currentStage.minMoves);
+  const rank = computeRank(game.moves, currentStage.minMoves, {
+    solutionViewed: currentStageRecord()?.solutionViewed === true,
+  });
   const overlay = document.createElement('div');
   overlay.className = 'overlay';
   const node = document.createElement('div');
@@ -375,9 +428,7 @@ function handleKeydown(event) {
 
 function onClear() {
   lastClearLog = game.log;
-  const previousBest = currentStage.kind === 'fixed'
-    ? progress.stages[currentStage.id]?.bestMoves ?? null
-    : null;
+  const previousBest = currentStageRecord()?.bestMoves ?? null;
   clearPreviousBest = previousBest;
   clearOverlayVisible = false;
   if (currentStage.kind === 'fixed') {
@@ -385,12 +436,28 @@ function onClear() {
       moves: game.moves,
       replay: game.log,
       clearedAt: new Date().toISOString(),
+      boardHash: currentStage.boardHash,
     });
     progress = result.progress;
-    if (result.storageDisabled && !storageNoticeShown) {
+    handleSaveResult(result);
+    if (false && result.storageDisabled && !storageNoticeShown) {
       errorMessage = '記録の保存が無効です';
       storageNoticeShown = true;
     }
+  }
+  if (currentStage.kind === 'random') {
+    progress = recordRandomPlay(progress, {
+      seed: currentStage.seed,
+      difficulty: currentStage.difficulty,
+      params: currentStage.params,
+      boardHash: currentStage.boardHash,
+      minMoves: currentStage.minMoves,
+      cleared: true,
+      bestMoves: game.moves,
+      replay: game.log,
+      clearedAt: new Date().toISOString(),
+    });
+    handleSaveResult(saveProgressState(progress));
   }
   scheduleClearOverlay();
   renderGame();
@@ -541,6 +608,122 @@ function nextStage() {
   startStage(next, currentStage.index + 1);
 }
 
+function viewOptimalReplay() {
+  if (!isValidReplayLog(currentStage.optimalSolution)) {
+    errorMessage = '模範リプレイデータが不正です';
+    renderGame();
+    return;
+  }
+  const viewed = currentStageRecord()?.solutionViewed === true;
+  if (!viewed) {
+    const accepted = window.confirm('視聴するとこのステージでは査定「特」が取れなくなります');
+    if (!accepted) {
+      return;
+    }
+    if (currentStage.kind === 'fixed') {
+      progress = markSolutionViewed(progress, currentStage.id, currentStage.boardHash);
+    } else {
+      progress = recordRandomPlay(progress, {
+        seed: currentStage.seed,
+        difficulty: currentStage.difficulty,
+        params: currentStage.params,
+        boardHash: currentStage.boardHash,
+        minMoves: currentStage.minMoves,
+      });
+      progress = markRandomSolutionViewed(progress, currentStage.seed, currentStage.difficulty, currentStage.boardHash);
+    }
+    handleSaveResult(saveProgressState(progress));
+  }
+  startReplay(currentStage.optimalSolution);
+}
+
+function currentStageRecord() {
+  if (!currentStage) {
+    return null;
+  }
+  if (currentStage.kind === 'fixed') {
+    return progress.stages[currentStage.id] ?? null;
+  }
+  return progress.randomHistory.find((entry) => (
+    entry.seed === currentStage.seed && entry.difficulty === currentStage.difficulty
+  )) ?? null;
+}
+
+function randomHistoryPanel() {
+  const entries = filterValidRandomHistory(progress, (entry) => {
+    const generated = generateStage({ ...entry.params, seed: entry.seed });
+    return serializeBoard(generated.board);
+  });
+  if (entries.length === 0) {
+    return null;
+  }
+  const panel = document.createElement('div');
+  panel.className = 'stage-card history-card';
+  panel.append(textEl('div', 'card-title', '遊んだランダム面'));
+  const list = document.createElement('div');
+  list.className = 'history-list';
+  for (const entry of entries.slice(0, 10)) {
+    const row = document.createElement('button');
+    row.className = 'history-row';
+    row.append(textEl('span', '', `${entry.difficulty} #${entry.seed}`));
+    row.append(textEl('span', '', entry.cleared ? `BEST ${entry.bestMoves}` : '未クリア'));
+    if (entry.solutionViewed) {
+      row.append(textEl('span', '', '模範視聴済み'));
+    }
+    row.addEventListener('click', () => retryRandomHistory(entry));
+    list.append(row);
+  }
+  panel.append(list);
+  return panel;
+}
+
+function retryRandomHistory(entry) {
+  try {
+    const generated = generateStage({ ...entry.params, seed: entry.seed });
+    currentStage = randomStageState(entry.difficulty, entry, generated);
+    game = new Game(generated.board);
+    lastClearLog = '';
+    clearPreviousBest = null;
+    clearOverlayVisible = false;
+    cancelClearOverlayDelay();
+    renderGame();
+  } catch (error) {
+    errorMessage = `ランダム履歴を再生成できません: ${error.message}`;
+    renderMenu();
+  }
+}
+
+function resetClears() {
+  const ok = window.confirm('クリア記録を削除します。模範リプレイの視聴フラグは残ります。特の制限は解除されません');
+  if (!ok) {
+    return;
+  }
+  progress = resetClearRecords(progress);
+  handleSaveResult(saveProgressState(progress));
+  renderMenu();
+}
+
+function clearEverything() {
+  const first = window.confirm('記録を全消去します。模範解の視聴履歴・ランダム履歴も削除します');
+  if (!first) {
+    return;
+  }
+  const second = window.confirm('本当にすべての記録を削除しますか。模範解の視聴履歴・ランダム履歴も削除します');
+  if (!second) {
+    return;
+  }
+  progress = clearAllProgress();
+  handleSaveResult(saveProgressState(progress));
+  renderMenu();
+}
+
+function handleSaveResult(result) {
+  if ((result.saved === false || result.storageDisabled) && !storageNoticeShown) {
+    errorMessage = '記録を保存できません';
+    storageNoticeShown = true;
+  }
+}
+
 function shell(children) {
   const node = document.createElement('div');
   node.className = 'app-shell';
@@ -588,9 +771,9 @@ function rankStamp(rank) {
   return stamp;
 }
 
-function safeRank(moves, minMoves) {
+function safeRank(moves, minMoves, solutionViewed = false) {
   try {
-    return computeRank(moves, minMoves);
+    return computeRank(moves, minMoves, { solutionViewed });
   } catch {
     return null;
   }

@@ -107,3 +107,13 @@ test('RK-03: invalid input throws TypeError', () => {
     assert.throws(() => computeRank(...args), TypeError, JSON.stringify(args));
   }
 });
+
+test('RK-04: viewed solution caps perfect clear at A', () => {
+  assert.deepEqual(computeRank(20, 20, { solutionViewed: true }), {
+    grade: 'A',
+    label: '優',
+    nextGrade: { grade: 'S', label: '特', maxMoves: 20 },
+    cappedByViewing: true,
+  });
+  assert.equal(computeRank(20, 20, { solutionViewed: false }).grade, 'S');
+});

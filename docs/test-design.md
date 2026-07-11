@@ -1,6 +1,6 @@
 # テスト設計書 (qgb_soukoban)
 
-- 版: v0.3.4 (テストプレイ第4回フィードバックに基づく査定ランク(RK-01〜03)・選抜の多様性制約(T-11/T-12)・T-04 厳密単調化を追補。ユーザー指示 2026-07-11/12)
+- 版: v0.3.5 (REQ-SAVE-001 新設に伴い、保存記録の整合性・初期化操作の選択性(SV-01〜11)を追補。Codex レビュー全指摘採用・issue #1 対応。ユーザー指示 2026-07-12)
 - 関連: [design.md](design.md) / [qgb-design.md](qgb-design.md)
 
 ## 1. TDD 運用ルール
@@ -27,7 +27,7 @@ tests/
 
 ## 3. ケース一覧
 
-**S2 ゲートは `node --test` で実スイート全件を実行するため、本表に載る全テストが機械検査対象である。** qgb でチェック対象としない(表に載せない)テスト項目があってもよいが、TDD の観点からは設計表に載せたほうが確実である(ユーザー決定 2026-07-11)。§3.1〜3.8(board/game/solver/generator/stages/replay/progress/quality/rank)は全て実装済みで、`tests/*.test.mjs` の実テストを 1 件残らず追補している。generator/stages/quality(§3.4/3.5/3.7)は当初(2026-07-11 午前時点)未着手だったが、同日中に実装が完了し、続くテストプレイ第 1 回フィードバックへの対応(難易度向上ラウンド)で N-08/T-07 が追加された。テストプレイ第 4 回フィードバックへの対応(査定ランク・選抜の多様性制約)で rank.test.mjs(§3.8、RK-01〜03)が新設され、stages.test.mjs に T-11/T-12 が追加、T-04 が厳密単調判定に強化された。
+**S2 ゲートは `node --test` で実スイート全件を実行するため、本表に載る全テストが機械検査対象である。** qgb でチェック対象としない(表に載せない)テスト項目があってもよいが、TDD の観点からは設計表に載せたほうが確実である(ユーザー決定 2026-07-11)。§3.1〜3.8(board/game/solver/generator/stages/replay/progress/quality/rank)は全て実装済みで、`tests/*.test.mjs` の実テストを 1 件残らず追補している。generator/stages/quality(§3.4/3.5/3.7)は当初(2026-07-11 午前時点)未着手だったが、同日中に実装が完了し、続くテストプレイ第 1 回フィードバックへの対応(難易度向上ラウンド)で N-08/T-07 が追加された。テストプレイ第 4 回フィードバックへの対応(査定ランク・選抜の多様性制約)で rank.test.mjs(§3.8、RK-01〜03)が新設され、stages.test.mjs に T-11/T-12 が追加、T-04 が厳密単調判定に強化された。§3.9(SV-01〜11)は REQ-SAVE-001 新設(issue #1: 模範リプレイ・ランダム履歴・リセット2系統。Codex レビュー全指摘採用)に伴う追加で、2026-07-12 時点では該当実装(盤面ハッシュ紐付け・選択的失効・保存失敗意味論・確認 UX 等)が未着手のため、`tests/progress.test.mjs` への実装は今後の対応。
 
 ### 3.1 board.test.mjs
 
@@ -152,6 +152,26 @@ R-01〜R-03 は `tests/replay.test.mjs` に実装。R-04/R-05 は `src/core/prog
 | RK-01 | 等級境界: S/A/B/C それぞれの閾値ちょうど・閾値±1(相対閾値が効く `minMoves` と、絶対下限(`max(2,…)`/`max(5,…)`)が効く小さい `minMoves` の両方で検証) | `moves === minMoves` は S。`minMoves + max(2, ceil(minMoves*0.10))` 以下は A。`minMoves + max(5, ceil(minMoves*0.30))` 以下は B。それ以外は C。境界値の前後 1 手で等級が切り替わる |
 | RK-02 | `nextGrade` は現在より 1 段上の等級とその上限手数を指す | S 判定は `nextGrade: null`。A/B/C 判定は `{grade, label, maxMoves}` が直上の等級の上限手数と一致 |
 | RK-03 | 不正入力(非整数・NaN・`minMoves < 1`・`moves < minMoves`・安全整数超過・非 number 型)| 全ケースで `TypeError` を投げる(黙って補正しない) |
+
+### 3.9 progress.test.mjs(保存記録の整合性・初期化操作の選択性。REQ-SAVE-001、issue #1 対応、2026-07-12 追加)
+
+REQ-SAVE-001「保存された記録は参照先の盤面と常に整合し、初期化操作は宣言した範囲だけを消す」の acceptance criteria(SV-01〜SV-11)。`src/core/progress.js`(直列化・マージ・失効判定)と `src/core/rank.js`(査定ランクの視聴上限)を対象とする。R-04/R-05 系(§3.6)とはファイルを共有するが、観点が異なるため ID 系列を分ける。
+
+| # | ケース | 期待 |
+|---|---|---|
+| SV-01 | v2 の各ステージ記録は盤面ハッシュ(stage text の sha-256 等)を保持する。ロード時に現行 STAGES の盤面とハッシュ不一致の記録が 1 件混在する状態を作り、ロードする | 不一致の記録だけが無効化される。他の記録・`solutionViewed`・ランダム履歴は変化しない(選択的失効) |
+| SV-02 | ランダム履歴に seed+params から再生成した盤面と不一致のエントリを 1 件混在させて表示用に取得する | 不一致エントリのみ表示から除外され、他のエントリは影響を受けない(再生成失敗時も同様に個別除外) |
+| SV-03 | v1 形式のデータ / 壊れた JSON / 未知版のデータをロードする | いずれも初期状態を返す(throw しない) |
+| SV-04 | `localStorage.setItem` が例外を投げる状況(quota 超過等のモック)で保存を実行する | (a) 呼び出し元に失敗が返る(例外伝播または失敗を示す戻り値) (b) 書き込み前の既存データが変更されずに残る (c) UI 層が保存不能状態を表示する経路を持つ(呼び出し元での分岐が単体テストで確認できる) |
+| SV-05 | `resetClearRecords` を実行する(視聴済み・ランダム履歴が存在する状態から) | クリア記録は消去されるが、`solutionViewed` とランダム履歴の存在は変化しない |
+| SV-06 | `clearAllProgress` を実行する(同上の状態から) | クリア記録・`solutionViewed`・ランダム履歴のすべてが消去される |
+| SV-07 | `solutionViewed=true` の面を最短手数(`moves===minMoves`)でクリアした査定と、`solutionViewed=false` の面を同条件でクリアした査定を、収録面・ランダム面それぞれで比較する | 視聴済みは `grade:"A"` かつ `cappedByViewing:true`、未視聴は `grade:"S"`。`resetClearRecords` 後も視聴済み側の上限は解除されず、`clearAllProgress` 後にのみ解除される |
+| SV-08 | 収録面・ランダム面プールの `optimalSolution` を初期盤面へ適用する | 勝利到達し、手順長がソルバー再計算 `minMoves` と一致する(生成器の構成的証明解ではなくソルバー由来の最短解であることの確認。REQ-SOLV-001 の T-13/SP-05 と対応) |
+| SV-09 | 保存処理が使用する localStorage キー名を検査する | `qgb-soukoban/v2` を使用する。旧 v1 キーへの読み取り・削除アクセスが発生しない |
+| SV-10 | `resetClearRecords` / `clearAllProgress` の確認 UX 文言を検査する | `resetClearRecords` は確認 1 段。`clearAllProgress` は確認 2 段階で、いずれかの段の文言に「模範解の視聴履歴・ランダム履歴も削除します」に相当する文言を含む |
+| SV-11 | `mergeClearRecord` / `recordRandomPlay` を `solutionViewed=true` の状態に対して呼び出す | 呼び出し前後で `solutionViewed` の値が変化しない(該当フィールドのみ更新される) |
+
+注: SV-08 は REQ-SAVE-001(記録として保存された `optimalSolution` の真正性、単体テスト観点)と REQ-SOLV-001(収録・生成データそのものの真正性、S3 独立スクリプトの証跡観点)の両方から検証される。単一責任の原則により実装は重複するが、検証目的が異なるため両 REQ に残す。
 
 ## 4. 性能条件
 
