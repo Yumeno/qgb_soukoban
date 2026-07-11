@@ -1,8 +1,8 @@
 {
   "schema_version": "1.0",
   "req_id": "REQ-SAVE-001",
-  "timestamp_utc": "2026-07-11T180036Z",
-  "timestamp_rfc3339": "2026-07-11T18:00:36Z",
+  "timestamp_utc": "2026-07-11T190640Z",
+  "timestamp_rfc3339": "2026-07-11T19:06:40Z",
   "run_id": "r0001",
   "phase": "verify",
   "status": "ALLOW",
@@ -17,7 +17,7 @@
     "version": "0.1.5"
   },
   "paths": {
-    "run_dir": ".quality-system/artifacts/REQ-SAVE-001/runs/2026-07-11T180036Z-r0001",
+    "run_dir": ".quality-system/artifacts/REQ-SAVE-001/runs/2026-07-11T190640Z-r0001",
     "curated_latest_dir": ".quality-system/evidence/REQ-SAVE-001/latest"
   },
   "stages": [

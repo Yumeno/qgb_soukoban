@@ -127,6 +127,65 @@ function extractImportSpecifiers(source) {
   return [...specifiers];
 }
 
+function extractImportDeclarations(source) {
+  const declarations = [];
+  const patterns = [
+    /\bimport\s+([\s\S]*?)\s+from\s*["']([^"']+)["']/g,
+    /\bimport\s*["']([^"']+)["']/g,
+    /\bimport\s*\(\s*["']([^"']+)["']\s*\)/g,
+  ];
+
+  let match;
+  while ((match = patterns[0].exec(source)) !== null) {
+    declarations.push({
+      specifier: match[2],
+      names: importedNamesFromClause(match[1]),
+    });
+  }
+  while ((match = patterns[1].exec(source)) !== null) {
+    declarations.push({ specifier: match[1], names: [] });
+  }
+  while ((match = patterns[2].exec(source)) !== null) {
+    declarations.push({ specifier: match[1], names: [] });
+  }
+
+  return declarations;
+}
+
+function importedNamesFromClause(clause) {
+  const names = [];
+  const trimmed = clause.trim();
+  if (trimmed.startsWith('{')) {
+    names.push(...namesFromImportList(trimmed));
+    return names;
+  }
+  if (trimmed.startsWith('*')) {
+    return names;
+  }
+  const commaIndex = trimmed.indexOf(',');
+  if (commaIndex === -1) {
+    names.push('default');
+    return names;
+  }
+  names.push('default');
+  names.push(...namesFromImportList(trimmed.slice(commaIndex + 1)));
+  return names;
+}
+
+function namesFromImportList(text) {
+  const open = text.indexOf('{');
+  const close = text.lastIndexOf('}');
+  if (open === -1 || close === -1 || close <= open) {
+    return [];
+  }
+  return text.slice(open + 1, close)
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .map((part) => part.split(/\s+as\s+/i)[0].trim())
+    .filter(Boolean);
+}
+
 function resolveImport(fromFile, specifier) {
   if (!specifier.startsWith('./') && !specifier.startsWith('../')) {
     return null;
@@ -137,6 +196,7 @@ function resolveImport(fromFile, specifier) {
 function checkImportGraph() {
   const failures = [];
   const visited = new Set();
+  const exportCache = new Map();
   const stack = [entryPath];
 
   if (!existsSync(entryPath)) {
@@ -158,23 +218,113 @@ function checkImportGraph() {
     }
 
     const source = readText(currentPath);
-    for (const specifier of extractImportSpecifiers(source)) {
-      const targetPath = resolveImport(currentPath, specifier);
+    for (const declaration of extractImportDeclarations(source)) {
+      const targetPath = resolveImport(currentPath, declaration.specifier);
       if (targetPath === null) {
         continue;
       }
       if (!existsSync(targetPath) || !statSync(targetPath).isFile()) {
         addFailure(
           failures,
-          `${toRelativePath(currentPath)} imports ${specifier} missing at ${toRelativePath(targetPath)}`,
+          `${toRelativePath(currentPath)} imports ${declaration.specifier} missing at ${toRelativePath(targetPath)}`,
         );
         continue;
+      }
+      if (declaration.names.length > 0) {
+        const exported = collectModuleExports(targetPath, exportCache, failures);
+        for (const name of declaration.names) {
+          if (!exported.has(name)) {
+            addFailure(
+              failures,
+              `${toRelativePath(currentPath)} imports missing export ${name} from ${toRelativePath(targetPath)}`,
+            );
+          }
+        }
       }
       stack.push(targetPath);
     }
   }
 
   return failures;
+}
+
+function collectModuleExports(filePath, cache, failures) {
+  const key = path.normalize(filePath);
+  if (cache.has(key)) {
+    return cache.get(key);
+  }
+  const names = new Set();
+  cache.set(key, names);
+  if (!existsSync(filePath) || !statSync(filePath).isFile()) {
+    addFailure(failures, `module missing at ${toRelativePath(filePath)}`);
+    return names;
+  }
+
+  const source = readText(filePath);
+  for (const match of source.matchAll(/\bexport\s+default\b/g)) {
+    if (match) {
+      names.add('default');
+    }
+  }
+  for (const match of source.matchAll(/\bexport\s+(?:async\s+)?(?:function|class)\s+([A-Za-z_$][\w$]*)/g)) {
+    names.add(match[1]);
+  }
+  for (const match of source.matchAll(/\bexport\s+(?:const|let|var)\s+([^;]+)/g)) {
+    for (const declarator of match[1].split(',')) {
+      const name = declarator.trim().match(/^([A-Za-z_$][\w$]*)/);
+      if (name) {
+        names.add(name[1]);
+      }
+    }
+  }
+  for (const match of source.matchAll(/\bexport\s*\{([\s\S]*?)\}(?:\s*from\s*["']([^"']+)["'])?/g)) {
+    const entries = exportListEntries(match[1]);
+    const specifier = match[2];
+    if (specifier) {
+      const targetPath = resolveImport(filePath, specifier);
+      const targetExports = targetPath === null ? null : collectModuleExports(targetPath, cache, failures);
+      for (const entry of entries) {
+        if (targetExports !== null && !targetExports.has(entry.imported)) {
+          addFailure(
+            failures,
+            `${toRelativePath(filePath)} re-exports missing export ${entry.imported} from ${specifier}`,
+          );
+        }
+        names.add(entry.exported);
+      }
+    } else {
+      for (const entry of entries) {
+        names.add(entry.exported);
+      }
+    }
+  }
+  for (const match of source.matchAll(/\bexport\s+\*\s+from\s*["']([^"']+)["']/g)) {
+    const targetPath = resolveImport(filePath, match[1]);
+    if (targetPath === null) {
+      continue;
+    }
+    const targetExports = collectModuleExports(targetPath, cache, failures);
+    for (const name of targetExports) {
+      if (name !== 'default') {
+        names.add(name);
+      }
+    }
+  }
+  return names;
+}
+
+function exportListEntries(listText) {
+  return listText
+    .split(',')
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .map((part) => {
+      const pieces = part.split(/\s+as\s+/i).map((piece) => piece.trim());
+      return {
+        imported: pieces[0],
+        exported: pieces[1] ?? pieces[0],
+      };
+    });
 }
 
 function collectJsFiles(dirPath, files) {

@@ -14,6 +14,7 @@ import {
 import { computeRank } from '../core/rank.js';
 import { SEED_POOLS } from '../core/seedpools.js';
 import { STAGES } from '../core/stages.js';
+import { buildResetConfirmation } from './confirmation.js';
 import { renderBoard } from './render.js';
 import { loadProgress, saveClearRecord, saveProgressState } from './storage.js';
 
@@ -171,6 +172,8 @@ function startRandom(difficulty) {
       params: currentStage.params,
       boardHash: currentStage.boardHash,
       minMoves: currentStage.minMoves,
+      optimalSolution: currentStage.optimalSolution,
+      playedAt: new Date().toISOString(),
     });
     handleSaveResult(saveProgressState(progress));
     game = new Game(generated.board);
@@ -308,7 +311,7 @@ function ticket(best) {
   if (currentStageRecord()?.solutionViewed) {
     lines.append(ticketRow('SOLUTION', 'VIEWED'));
   }
-  if (false && currentStage.kind === 'random') {
+  if (currentStage.kind === 'random') {
     lines.append(ticketRow('SEED', String(currentStage.seed)));
   }
   node.append(lines);
@@ -440,10 +443,6 @@ function onClear() {
     });
     progress = result.progress;
     handleSaveResult(result);
-    if (false && result.storageDisabled && !storageNoticeShown) {
-      errorMessage = '記録の保存が無効です';
-      storageNoticeShown = true;
-    }
   }
   if (currentStage.kind === 'random') {
     progress = recordRandomPlay(progress, {
@@ -452,10 +451,12 @@ function onClear() {
       params: currentStage.params,
       boardHash: currentStage.boardHash,
       minMoves: currentStage.minMoves,
+      optimalSolution: currentStage.optimalSolution,
       cleared: true,
       bestMoves: game.moves,
       replay: game.log,
       clearedAt: new Date().toISOString(),
+      playedAt: new Date().toISOString(),
     });
     handleSaveResult(saveProgressState(progress));
   }
@@ -620,6 +621,11 @@ function viewOptimalReplay() {
     if (!accepted) {
       return;
     }
+    if (!verifyOptimalSolution(currentStage)) {
+      errorMessage = '模範リプレイを検証できませんでした。視聴履歴は保存していません';
+      renderGame();
+      return;
+    }
     if (currentStage.kind === 'fixed') {
       progress = markSolutionViewed(progress, currentStage.id, currentStage.boardHash);
     } else {
@@ -629,6 +635,8 @@ function viewOptimalReplay() {
         params: currentStage.params,
         boardHash: currentStage.boardHash,
         minMoves: currentStage.minMoves,
+        optimalSolution: currentStage.optimalSolution,
+        playedAt: new Date().toISOString(),
       });
       progress = markRandomSolutionViewed(progress, currentStage.seed, currentStage.difficulty, currentStage.boardHash);
     }
@@ -645,14 +653,21 @@ function currentStageRecord() {
     return progress.stages[currentStage.id] ?? null;
   }
   return progress.randomHistory.find((entry) => (
-    entry.seed === currentStage.seed && entry.difficulty === currentStage.difficulty
+    entry.seed === currentStage.seed &&
+    entry.difficulty === currentStage.difficulty &&
+    entry.boardHash === currentStage.boardHash
   )) ?? null;
 }
 
 function randomHistoryPanel() {
   const entries = filterValidRandomHistory(progress, (entry) => {
     const generated = generateStage({ ...entry.params, seed: entry.seed });
-    return serializeBoard(generated.board);
+    return {
+      text: serializeBoard(generated.board),
+      minMoves: generated.minMoves,
+      optimalSolution: entry.optimalSolution,
+      solutionWins: verifySolution(generated.board, entry.optimalSolution, entry.minMoves),
+    };
   });
   if (entries.length === 0) {
     return null;
@@ -680,6 +695,16 @@ function randomHistoryPanel() {
 function retryRandomHistory(entry) {
   try {
     const generated = generateStage({ ...entry.params, seed: entry.seed });
+    if (!verifySolution(generated.board, entry.optimalSolution, entry.minMoves)) {
+      errorMessage = 'ランダム履歴の検証に失敗したため除外しました';
+      progress = {
+        ...progress,
+        randomHistory: progress.randomHistory.filter((item) => item !== entry),
+      };
+      handleSaveResult(saveProgressState(progress));
+      renderMenu();
+      return;
+    }
     currentStage = randomStageState(entry.difficulty, entry, generated);
     game = new Game(generated.board);
     lastClearLog = '';
@@ -694,8 +719,7 @@ function retryRandomHistory(entry) {
 }
 
 function resetClears() {
-  const ok = window.confirm('クリア記録を削除します。模範リプレイの視聴フラグは残ります。特の制限は解除されません');
-  if (!ok) {
+  if (!runResetConfirmation('clears')) {
     return;
   }
   progress = resetClearRecords(progress);
@@ -704,17 +728,42 @@ function resetClears() {
 }
 
 function clearEverything() {
-  const first = window.confirm('記録を全消去します。模範解の視聴履歴・ランダム履歴も削除します');
-  if (!first) {
-    return;
-  }
-  const second = window.confirm('本当にすべての記録を削除しますか。模範解の視聴履歴・ランダム履歴も削除します');
-  if (!second) {
+  if (!runResetConfirmation('all')) {
     return;
   }
   progress = clearAllProgress();
   handleSaveResult(saveProgressState(progress));
   renderMenu();
+}
+
+function verifyOptimalSolution(stage) {
+  return verifySolution(stage.initialBoard, stage.optimalSolution, stage.minMoves);
+}
+
+function verifySolution(board, solution, minMoves) {
+  if (!isValidReplayLog(solution)) {
+    return false;
+  }
+  try {
+    const verifier = new Game(board);
+    verifier.applyMoves(solution);
+    return verifier.won && verifier.moves === minMoves;
+  } catch {
+    return false;
+  }
+}
+
+function runResetConfirmation(kind) {
+  const confirmation = buildResetConfirmation(kind);
+  if (confirmation.steps.length !== confirmation.requiredConfirms) {
+    return false;
+  }
+  for (const step of confirmation.steps) {
+    if (!window.confirm(step)) {
+      return false;
+    }
+  }
+  return true;
 }
 
 function handleSaveResult(result) {
