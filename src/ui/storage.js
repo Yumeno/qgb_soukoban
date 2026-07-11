@@ -60,6 +60,13 @@ export function saveProgress(progress) {
   return storageAdapter.setItem(STORAGE_KEY, serializeProgress(progress));
 }
 
+export function saveProgressState(progress) {
+  return {
+    saved: saveProgress(progress),
+    storageDisabled: storageAdapter.disabled,
+  };
+}
+
 export function saveClearRecord(progress, stageId, record) {
   const next = mergeClearRecord(progress, stageId, record);
   return {
