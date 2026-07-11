@@ -1,6 +1,7 @@
 import { validateBoard } from './board.js';
 import { Game } from './game.js';
 import { solve } from './solver.js';
+import { computeStageMetrics } from './metrics.js';
 import { mulberry32 } from './rng.js';
 
 const DIRS = [
@@ -20,16 +21,18 @@ export class GeneratorError extends Error {
 }
 
 export const DIFFICULTY_PRESETS = {
-  easy: { width: 7, height: 5, boxCount: 1, pullSteps: 18, minMovesFloor: 10, wallDensity: 0.2, maxAttempts: 6000 },
-  normal: { width: 9, height: 7, boxCount: 3, pullSteps: 42, minMovesFloor: 20, wallDensity: 0.2, maxAttempts: 2500 },
-  hard: { width: 11, height: 9, boxCount: 4, pullSteps: 50, minMovesFloor: 22, wallDensity: 0.18, maxAttempts: 2500 },
+  easy: { width: 7, height: 5, boxCount: 1, pullSteps: 18, minPushesFloor: 4, wallDensity: 0.12, goalClustering: false, maxAttempts: 6000 },
+  normal: { width: 9, height: 7, boxCount: 3, pullSteps: 42, minPushesFloor: 7, wallDensity: 0.14, goalClustering: true, maxAttempts: 2500 },
+  hard: { width: 9, height: 7, boxCount: 3, pullSteps: 36, minPushesFloor: 8, maxPhiBarrierFloor: 1, wallDensity: 0.08, goalClustering: true, maxAttempts: 1000 },
 };
 
 export function generateStage(params) {
   const normalized = normalizeParams(params);
   for (let attempt = 1; attempt <= normalized.maxAttempts; attempt += 1) {
     const rng = mulberry32(deriveSeed(normalized, attempt));
-    const candidate = buildCandidate(normalized, rng);
+    const candidate = normalized.goalClustering && rng() < 0.75
+      ? buildPlacementCandidate(normalized, rng)
+      : buildCandidate(normalized, rng);
     if (candidate === null) {
       continue;
     }
@@ -65,12 +68,25 @@ export function generateStage(params) {
       continue;
     }
 
+    const metrics = computeStageMetrics(candidate.board);
+    if (metrics.solvable !== true) {
+      continue;
+    }
+    if (metrics.minPushes < normalized.minPushesFloor) {
+      continue;
+    }
+    if (metrics.maxPhiBarrier < normalized.maxPhiBarrierFloor) {
+      continue;
+    }
+
     return {
       board: candidate.board,
       solution: candidate.solution,
       minMoves: solved.minMoves,
+      metrics,
       seed: normalized.seed,
       params: { ...normalized },
+      policy: normalized.goalClustering ? 'goal-clustered' : 'scattered',
       attempt,
     };
   }
@@ -82,10 +98,13 @@ function normalizeParams(params) {
   const normalized = {
     maxAttempts: 100,
     minMovesFloor: 0,
+    minPushesFloor: 0,
+    maxPhiBarrierFloor: 0,
     wallDensity: 0.16,
+    goalClustering: false,
     ...params,
   };
-  for (const key of ['seed', 'width', 'height', 'boxCount', 'pullSteps', 'maxAttempts', 'minMovesFloor']) {
+  for (const key of ['seed', 'width', 'height', 'boxCount', 'pullSteps', 'maxAttempts', 'minMovesFloor', 'minPushesFloor', 'maxPhiBarrierFloor']) {
     if (!Number.isInteger(normalized[key])) {
       throw new TypeError(`generateStage: ${key} must be an integer`);
     }
@@ -99,14 +118,21 @@ function normalizeParams(params) {
   if (normalized.boxCount < 1 || normalized.boxCount > 5) {
     throw new RangeError('generateStage: boxCount must be between 1 and 5');
   }
-  if (normalized.pullSteps < 0 || normalized.maxAttempts < 1 || normalized.minMovesFloor < 0) {
-    throw new RangeError('generateStage: pullSteps, maxAttempts and minMovesFloor must be non-negative');
+  if (normalized.pullSteps < 0
+    || normalized.maxAttempts < 1
+    || normalized.minMovesFloor < 0
+    || normalized.minPushesFloor < 0
+    || normalized.maxPhiBarrierFloor < 0) {
+    throw new RangeError('generateStage: pullSteps, maxAttempts, minMovesFloor, minPushesFloor and maxPhiBarrierFloor must be non-negative');
   }
   if (typeof normalized.wallDensity !== 'number' || !Number.isFinite(normalized.wallDensity)) {
     throw new TypeError('generateStage: wallDensity must be a finite number');
   }
   if (normalized.wallDensity < 0 || normalized.wallDensity > 0.45) {
     throw new RangeError('generateStage: wallDensity must be between 0 and 0.45');
+  }
+  if (typeof normalized.goalClustering !== 'boolean') {
+    throw new TypeError('generateStage: goalClustering must be a boolean');
   }
   return normalized;
 }
@@ -126,8 +152,7 @@ function buildCandidate(params, rng) {
     return null;
   }
 
-  shuffle(floors, rng);
-  const goals = new Set(floors.slice(0, params.boxCount));
+  const goals = selectGoals(params, floors, rng);
   const boxes = new Set(goals);
   const player = floors.find((idx) => !boxes.has(idx));
   if (player === undefined) {
@@ -170,6 +195,88 @@ function buildCandidate(params, rng) {
     movedAnyBox,
     movedAllBoxesFromGoals: unpulledBoxIds.size === 0,
   };
+}
+
+function buildPlacementCandidate(params, rng) {
+  const walls = generateConnectedRoom(params, rng);
+  const floors = [];
+  for (let y = 1; y < params.height - 1; y += 1) {
+    for (let x = 1; x < params.width - 1; x += 1) {
+      const idx = toIndex(x, y, params.width);
+      if (!walls.has(idx)) {
+        floors.push(idx);
+      }
+    }
+  }
+  if (floors.length < params.boxCount * 2 + 1) {
+    return null;
+  }
+
+  const goals = selectGoals(params, floors, rng);
+  const candidates = floors.filter((idx) => !goals.has(idx));
+  shuffle(candidates, rng);
+  const boxes = new Set(candidates.slice(0, params.boxCount));
+  const player = candidates.find((idx) => !boxes.has(idx));
+  if (player === undefined) {
+    return null;
+  }
+
+  const board = { width: params.width, height: params.height, walls, goals, boxes, player };
+  const solved = solve(board);
+  if (solved.solvable !== true) {
+    return null;
+  }
+
+  return {
+    board,
+    solution: solved.solution,
+    movedAnyBox: solved.solution.length > 0,
+    movedAllBoxesFromGoals: true,
+  };
+}
+
+function selectGoals(params, floors, rng) {
+  if (!params.goalClustering) {
+    const shuffled = floors.slice();
+    shuffle(shuffled, rng);
+    return new Set(shuffled.slice(0, params.boxCount));
+  }
+
+  const floorSet = new Set(floors);
+  const starts = floors.slice();
+  shuffle(starts, rng);
+
+  for (const start of starts) {
+    const cluster = growGoalCluster(params, floorSet, start, rng);
+    if (cluster.length >= params.boxCount) {
+      return new Set(cluster.slice(0, params.boxCount));
+    }
+  }
+
+  const fallback = floors.slice();
+  shuffle(fallback, rng);
+  return new Set(fallback.slice(0, params.boxCount));
+}
+
+function growGoalCluster(params, floorSet, start, rng) {
+  const cluster = [start];
+  const clusterSet = new Set(cluster);
+  const frontier = neighbors(start, params.width).filter((idx) => floorSet.has(idx));
+  shuffle(frontier, rng);
+
+  while (cluster.length < params.boxCount && frontier.length > 0) {
+    const next = frontier.shift();
+    if (clusterSet.has(next) || !floorSet.has(next)) {
+      continue;
+    }
+    cluster.push(next);
+    clusterSet.add(next);
+    const nextNeighbors = neighbors(next, params.width).filter((idx) => floorSet.has(idx) && !clusterSet.has(idx));
+    shuffle(nextNeighbors, rng);
+    frontier.push(...nextNeighbors);
+  }
+
+  return cluster;
 }
 
 function generateConnectedRoom(params, rng) {
@@ -316,9 +423,18 @@ function deriveSeed(params, attempt) {
   h = mix(h ^ (params.boxCount << 8));
   h = mix(h ^ (params.pullSteps << 12));
   h = mix(h ^ (params.minMovesFloor << 16));
+  h = mix(h ^ (params.minPushesFloor << 18));
+  h = mix(h ^ (params.maxPhiBarrierFloor << 20));
   h = mix(h ^ Math.floor(params.wallDensity * 1000));
+  h = mix(h ^ (params.goalClustering ? 0xA5A5A5A5 : 0));
   h = mix(h ^ Math.imul(attempt, 0x9E3779B1));
   return h >>> 0;
+}
+
+function neighbors(idx, width) {
+  const x = idx % width;
+  const y = Math.floor(idx / width);
+  return DIRS.map(([, dx, dy]) => toIndex(x + dx, y + dy, width));
 }
 
 function hasAnyBoxOnGoal(board) {

@@ -13,7 +13,9 @@ stdout (full):
 OK src/core/board.js
 OK src/core/game.js
 OK src/core/generator.js
+OK src/core/metrics.js
 OK src/core/progress.js
+OK src/core/pushsolver.js
 OK src/core/quality.js
 OK src/core/rng.js
 OK src/core/solver.js
@@ -26,7 +28,7 @@ OK tools/check-syntax.mjs
 OK tools/curate-stages.mjs
 OK tools/param-layers.mjs
 OK tools/verify-stages.mjs
-checked 16 files, 0 failures
+checked 18 files, 0 failures
 
 stderr (full):
 

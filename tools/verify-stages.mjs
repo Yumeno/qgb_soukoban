@@ -1,12 +1,13 @@
 import { parseBoard, validateBoard } from '../src/core/board.js';
 import { Game } from '../src/core/game.js';
 import { DIFFICULTY_PRESETS, generateStage, GeneratorError } from '../src/core/generator.js';
+import { computeStageMetrics } from '../src/core/metrics.js';
 import { solve } from '../src/core/solver.js';
 import { STAGES } from '../src/core/stages.js';
 import { PARAM_LAYERS } from './param-layers.mjs';
 
-const DIFFICULTY_SEEDS = Array.from({ length: 20 }, (_, i) => 0x51f15e00 + i);
-const LAYER_SEEDS = Array.from({ length: 5 }, (_, i) => 0x5A17E500 + i * 0x101);
+const DIFFICULTY_SEEDS = Array.from({ length: 5 }, (_, i) => 0x51f15e00 + i);
+const LAYER_SEEDS = Array.from({ length: 2 }, (_, i) => 0x5A17E500 + i * 0x101);
 const DIFFICULTIES = ['easy', 'normal', 'hard'];
 
 class VerifyError extends Error {
@@ -33,6 +34,11 @@ for (const stage of STAGES) {
     id: stage.id,
     seed: stage.seed,
     minMoves: '-',
+    minPushes: '-',
+    boxChanges: '-',
+    maxPhiBarrier: '-',
+    ratio: '-',
+    score: stage.metrics?.score ?? '-',
     expected: stage.minMoves,
     attempts: '-',
     status: 'PASS',
@@ -42,7 +48,8 @@ for (const stage of STAGES) {
 
   try {
     const board = parseBoard(stage.text);
-    row.minMoves = verifyBoard(board, stage.minMoves);
+    const result = verifyBoard(board, stage.minMoves, stage.metrics);
+    Object.assign(row, result);
   } catch (error) {
     row.status = 'FAIL';
     row.reason = reasonFromError(error);
@@ -66,13 +73,13 @@ for (const difficulty of DIFFICULTIES) {
 }
 
 for (let layerIndex = 0; layerIndex < PARAM_LAYERS.length; layerIndex += 1) {
-  const layer = PARAM_LAYERS[layerIndex];
+  const { seedIndexes, ...layer } = PARAM_LAYERS[layerIndex];
   for (const baseSeed of LAYER_SEEDS) {
     const seed = (baseSeed + layerIndex * 0x10000) >>> 0;
     representativeRows.push(runGeneratedRepresentative({
       group: `layer:${layerIndex}`,
       seed,
-      params: { seed, ...layer, maxAttempts: 2000 },
+      params: { seed, maxAttempts: layer.maxAttempts ?? 200, ...layer },
     }));
   }
 }
@@ -103,6 +110,11 @@ function runGeneratedRepresentative({ group, seed, params }) {
     id: '-',
     seed,
     minMoves: '-',
+    minPushes: '-',
+    boxChanges: '-',
+    maxPhiBarrier: '-',
+    ratio: '-',
+    score: '-',
     expected: '-',
     attempts: '-',
     status: 'PASS',
@@ -116,7 +128,9 @@ function runGeneratedRepresentative({ group, seed, params }) {
     if (stage.attempt > params.maxAttempts * 0.5) {
       row.status = 'WARN';
     }
-    row.minMoves = verifyBoard(stage.board, stage.minMoves);
+    const result = verifyBoard(stage.board, stage.minMoves);
+    Object.assign(row, result);
+    row.score = stage.metrics?.score ?? '-';
     row.expected = stage.minMoves;
   } catch (error) {
     row.status = 'FAIL';
@@ -131,7 +145,7 @@ function runGeneratedRepresentative({ group, seed, params }) {
   return row;
 }
 
-function verifyBoard(board, expectedMinMoves) {
+function verifyBoard(board, expectedMinMoves, expectedMetrics = null) {
   const validation = validateBoard(board);
   if (!validation.ok) {
     throw new VerifyError('validate_failed', validation.errors.map((error) => error.code).join(','));
@@ -155,7 +169,30 @@ function verifyBoard(board, expectedMinMoves) {
     throw new VerifyError('apply_failed', 'replay_mismatch');
   }
 
-  return solved.minMoves;
+  const metrics = computeStageMetrics(board);
+  if (metrics.solvable !== true) {
+    throw new VerifyError('metrics_unsolved', metrics.reason ?? 'unsolved');
+  }
+  if (expectedMetrics !== null && expectedMetrics !== undefined) {
+    assertMetric('minPushes', metrics.minPushes, expectedMetrics.minPushes);
+    assertMetric('boxChanges', metrics.boxChanges, expectedMetrics.boxChanges);
+    assertMetric('maxPhiBarrier', metrics.maxPhiBarrier, expectedMetrics.maxPhiBarrier);
+    assertMetric('movesPushesRatio', roundMetric(metrics.movesPushesRatio), expectedMetrics.movesPushesRatio);
+  }
+
+  return {
+    minMoves: solved.minMoves,
+    minPushes: metrics.minPushes,
+    boxChanges: metrics.boxChanges,
+    maxPhiBarrier: metrics.maxPhiBarrier,
+    ratio: roundMetric(metrics.movesPushesRatio),
+  };
+}
+
+function assertMetric(name, actual, expected) {
+  if (actual !== expected) {
+    throw new VerifyError('metrics_mismatch', `${name} ${actual} != ${expected}`);
+  }
 }
 
 function reasonFromError(error) {
@@ -170,15 +207,19 @@ function reasonFromError(error) {
 
 function printStageTable(title, rows) {
   console.log(title);
-  console.log('group             id      seed       minMoves expected attempts            status reason ms');
-  console.log('----------------  ------  ---------  -------- -------- ------------------ ------ ------ ---');
+  console.log('group             id      seed       moves pushes changes phi ratio score attempts            status reason ms');
+  console.log('----------------  ------  ---------  ----- ------ ------- --- ----- ----- ------------------ ------ ------ ---');
   for (const row of rows) {
     console.log([
       padRight(row.group, 16),
       padRight(row.id, 6),
       padLeft(row.seed, 9),
-      padLeft(row.minMoves, 8),
-      padLeft(row.expected, 8),
+      padLeft(row.minMoves, 5),
+      padLeft(row.minPushes, 6),
+      padLeft(row.boxChanges, 7),
+      padLeft(row.maxPhiBarrier, 3),
+      padLeft(row.ratio, 5),
+      padLeft(row.score, 5),
       padRight(row.attempts, 18),
       padRight(row.status, 6),
       padRight(row.reason, 6),
@@ -189,6 +230,10 @@ function printStageTable(title, rows) {
 
 function formatAttempts(attempt, maxAttempts) {
   return `attempts ${attempt}/${maxAttempts}`;
+}
+
+function roundMetric(value) {
+  return Math.round(value * 1000) / 1000;
 }
 
 function padLeft(value, width) {

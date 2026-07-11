@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { parseBoard, validateBoard } from '../src/core/board.js';
 import { Game } from '../src/core/game.js';
 import { solve } from '../src/core/solver.js';
+import { computeStageMetrics } from '../src/core/metrics.js';
 import { STAGES } from '../src/core/stages.js';
 
 function boardFor(stage) {
@@ -33,18 +34,14 @@ for (const stage of STAGES) {
   });
 }
 
-test('T-04: difficulty curve is roughly monotonic', () => {
-  const moves = STAGES.map((stage) => stage.minMoves);
-  assert.equal(moves[0], Math.min(...moves), 'stage01 should be easiest');
-  assert.equal(moves.at(-1), Math.max(...moves), 'stage10 should be hardest');
+test('T-04: difficulty curve is monotonic by score', () => {
+  const scores = STAGES.map((stage) => stage.metrics.score);
+  assert.equal(scores[0], Math.min(...scores), 'stage01 should be easiest');
+  assert.equal(scores.at(-1), Math.max(...scores), 'stage10 should be hardest');
 
-  let inversions = 0;
-  for (let i = 1; i < moves.length; i += 1) {
-    if (moves[i] < moves[i - 1]) {
-      inversions += 1;
-    }
+  for (let i = 1; i < scores.length; i += 1) {
+    assert.ok(scores[i] >= scores[i - 1], `score curve: ${scores.join(',')}`);
   }
-  assert.ok(inversions <= 1, `too many inversions: ${moves.join(',')}`);
 });
 
 test('T-05: stage ids and names are unique', () => {
@@ -65,6 +62,24 @@ test('T-07: no embedded stage starts with a box on a goal', () => {
       assert.equal(board.goals.has(box), false, `${stage.id}: box=${box}`);
     }
     assert.equal(stage.text.includes('*'), false, stage.id);
+  }
+});
+
+for (const stage of STAGES) {
+  test(`T-08: ${stage.id} embedded metrics match recomputed metrics`, { timeout: 5000 }, () => {
+    const board = boardFor(stage);
+    const metrics = computeStageMetrics(board);
+    assert.equal(metrics.solvable, true, `${stage.id}: metrics solvable`);
+    assert.equal(stage.metrics.minPushes, metrics.minPushes, `${stage.id}: minPushes`);
+    assert.equal(stage.metrics.boxChanges, metrics.boxChanges, `${stage.id}: boxChanges`);
+    assert.equal(stage.metrics.maxPhiBarrier, metrics.maxPhiBarrier, `${stage.id}: maxPhiBarrier`);
+    assert.equal(stage.metrics.movesPushesRatio, Math.round(metrics.movesPushesRatio * 1000) / 1000, `${stage.id}: movesPushesRatio`);
+  });
+}
+
+test('T-09: stage08-stage10 require maxPhiBarrier >= 1', () => {
+  for (const stage of STAGES.slice(7, 10)) {
+    assert.ok(stage.metrics.maxPhiBarrier >= 1, `${stage.id}: maxPhiBarrier=${stage.metrics.maxPhiBarrier}`);
   }
 });
 

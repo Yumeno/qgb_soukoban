@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseBoard } from '../src/core/board.js';
 import { solve } from '../src/core/solver.js';
+import { computeStageMetrics } from '../src/core/metrics.js';
 import { checkStageQuality, countBoxSwitches, hasRedundantBoxMovement } from '../src/core/quality.js';
 import { STAGES } from '../src/core/stages.js';
 
@@ -125,22 +126,23 @@ test('Q-03: selected embedded stages satisfy curation invariants', () => {
   assert.equal(new Set(STAGES.map((stage) => stage.id)).size, STAGES.length);
   assert.equal(new Set(STAGES.map((stage) => stage.name)).size, STAGES.length);
 
-  const moves = STAGES.map((stage) => stage.minMoves);
-  let inversions = 0;
-  for (let i = 1; i < moves.length; i += 1) {
-    if (moves[i] < moves[i - 1]) {
-      inversions += 1;
-    }
+  const scores = STAGES.map((stage) => stage.metrics.score);
+  assert.equal(scores[0], Math.min(...scores));
+  assert.equal(scores.at(-1), Math.max(...scores));
+  for (let i = 1; i < scores.length; i += 1) {
+    assert.ok(scores[i] >= scores[i - 1], `score curve: ${scores.join(',')}`);
   }
-  assert.equal(moves[0], Math.min(...moves));
-  assert.equal(moves.at(-1), Math.max(...moves));
-  assert.ok(inversions <= 1, `minMoves curve: ${moves.join(',')}`);
 
   for (const stage of STAGES) {
     const board = parseBoard(stage.text);
+    const metrics = computeStageMetrics(board);
     assert.ok(board.boxes.size <= 5, `${stage.id}: boxes=${board.boxes.size}`);
     assert.ok(board.width <= 12, `${stage.id}: width=${board.width}`);
     assert.ok(board.height <= 10, `${stage.id}: height=${board.height}`);
     assert.equal(checkStageQuality({ ...stage, board }).ok, true, `${stage.id}: quality`);
+    assert.equal(stage.metrics.minPushes, metrics.minPushes, `${stage.id}: minPushes`);
+  }
+  for (const stage of STAGES.slice(7, 10)) {
+    assert.ok(stage.metrics.maxPhiBarrier >= 1, `${stage.id}: maxPhiBarrier`);
   }
 });

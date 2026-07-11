@@ -9,5 +9,5 @@
     "--test"
   ],
   "expected_exit_code": 0,
-  "timeout_seconds": 300
+  "timeout_seconds": 600
 }

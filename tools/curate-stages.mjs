@@ -3,13 +3,22 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serializeBoard } from '../src/core/board.js';
 import { generateStage, GeneratorError } from '../src/core/generator.js';
-import { checkStageQuality, countBoxSwitches } from '../src/core/quality.js';
+import { checkStageQuality } from '../src/core/quality.js';
 import { PARAM_LAYERS } from './param-layers.mjs';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT_FILE = resolve(ROOT, 'src/core/stages.js');
 
-const MASTER_SEEDS = Array.from({ length: 16 }, (_, i) => 0x5A17E000 + i * 0x101);
+// D3 provisional score. Calibrate these weights with test play feedback.
+const SCORE_WEIGHTS = {
+  minPushes: 2,
+  boxChanges: 3,
+  maxPhiBarrier: 5,
+  ratioPenaltyThreshold: 3,
+  ratioPenalty: 2,
+};
+
+const MASTER_SEEDS = Array.from({ length: 12 }, (_, i) => 0x5A17E000 + i * 0x101);
 
 const generated = [];
 const seenBoards = new Set();
@@ -21,10 +30,11 @@ const layerStats = PARAM_LAYERS.map(() => ({
 }));
 
 for (let layerIndex = 0; layerIndex < PARAM_LAYERS.length; layerIndex += 1) {
-  const layer = PARAM_LAYERS[layerIndex];
-  for (let seedIndex = 0; seedIndex < MASTER_SEEDS.length; seedIndex += 1) {
+  const { seedIndexes, ...layer } = PARAM_LAYERS[layerIndex];
+  const seedSource = seedIndexes ?? MASTER_SEEDS.map((_, index) => index);
+  for (const seedIndex of seedSource) {
     const seed = (MASTER_SEEDS[seedIndex] + layerIndex * 0x10000) >>> 0;
-    const params = { seed, ...layer, maxAttempts: 200 };
+    const params = { seed, maxAttempts: layer.maxAttempts ?? 200, ...layer };
     try {
       const stage = generateStage(params);
       layerStats[layerIndex].generated += 1;
@@ -39,7 +49,8 @@ for (let layerIndex = 0; layerIndex < PARAM_LAYERS.length; layerIndex += 1) {
         continue;
       }
       seenBoards.add(text);
-      generated.push({ ...stage, text, boxSwitches: countBoxSwitches(stage.board, stage.solution) });
+      const score = scoreMetrics(stage.metrics);
+      generated.push({ ...stage, text, score });
     } catch (error) {
       if (!(error instanceof GeneratorError)) {
         throw error;
@@ -70,55 +81,59 @@ function selectStages(candidates) {
     throw new Error('curate-stages: no one-box intro candidate found');
   }
 
-  const groups = new Map();
-  for (const candidate of sorted) {
-    if (candidate.minMoves < intro.minMoves) {
-      continue;
-    }
-    const current = groups.get(candidate.minMoves);
-    if (!current || compareCandidate(candidate, current) < 0) {
-      groups.set(candidate.minMoves, candidate);
-    }
+  const hardPool = sorted.filter((candidate) => candidate.metrics.maxPhiBarrier >= 1);
+  if (hardPool.length < 3) {
+    throw new Error(`curate-stages: need at least 3 maxPhiBarrier>=1 candidates, got ${hardPool.length}`);
   }
 
-  const byMove = [...groups.values()].sort(compareCandidate);
-  if (byMove.length < 10) {
-    throw new Error(`curate-stages: need at least 10 distinct minMoves, got ${byMove.length}`);
-  }
-
+  const pickedTexts = new Set();
   const picks = [];
-  const pickedMoves = new Set();
   const addPick = (candidate) => {
-    if (!pickedMoves.has(candidate.minMoves)) {
-      picks.push(candidate);
-      pickedMoves.add(candidate.minMoves);
+    if (pickedTexts.has(candidate.text)) {
+      return false;
     }
+    picks.push(candidate);
+    pickedTexts.add(candidate.text);
+    return true;
   };
 
+  const hardPicks = [];
+  for (let i = hardPool.length - 1; i >= 0 && hardPicks.length < 3; i -= 1) {
+    hardPicks.push(hardPool[i]);
+  }
+  hardPicks.reverse();
+  const hardFloorScore = hardPicks[0].score;
+
   addPick(intro);
-  for (let i = 1; i < 9; i += 1) {
-    const target = Math.round((i * (byMove.length - 1)) / 9);
-    let index = target;
-    while (index < byMove.length && pickedMoves.has(byMove[index].minMoves)) {
-      index += 1;
-    }
-    if (index >= byMove.length) {
-      index = target - 1;
-      while (index >= 0 && pickedMoves.has(byMove[index].minMoves)) {
-        index -= 1;
+  const lowPool = sorted.filter((candidate) => candidate.score <= hardFloorScore && candidate.text !== intro.text);
+  const lowTargets = Math.max(0, 7 - picks.length);
+  const lowPicks = spreadPick(lowPool, lowTargets);
+  for (const candidate of lowPicks) {
+    addPick(candidate);
+  }
+
+  if (picks.length < 7) {
+    for (const candidate of sorted) {
+      if (picks.length >= 7) {
+        break;
+      }
+      if (candidate.score <= hardFloorScore) {
+        addPick(candidate);
       }
     }
-    if (index >= 0) {
-      addPick(byMove[index]);
-    }
   }
-  addPick(byMove.at(-1));
+  if (picks.length < 7) {
+    throw new Error(`curate-stages: need 7 lower-score picks before hard tail, got ${picks.length}`);
+  }
 
-  for (const candidate of byMove) {
-    if (picks.length >= 10) {
-      break;
-    }
+  for (const candidate of hardPicks) {
     addPick(candidate);
+  }
+
+  if (picks.length < 10) {
+    for (let i = hardPool.length - 1; i >= 0 && picks.length < 10; i -= 1) {
+      addPick(hardPool[i]);
+    }
   }
 
   const finalStages = picks.sort(compareCandidate).slice(0, 10);
@@ -126,25 +141,68 @@ function selectStages(candidates) {
     throw new Error(`curate-stages: selected ${finalStages.length} stages`);
   }
   for (let i = 1; i < finalStages.length; i += 1) {
-    if (finalStages[i].minMoves < finalStages[i - 1].minMoves) {
-      throw new Error('curate-stages: selected curve is not monotonic');
+    if (finalStages[i].score < finalStages[i - 1].score) {
+      throw new Error('curate-stages: selected score curve is not monotonic');
     }
   }
   if (finalStages[0].board.boxes.size !== 1) {
     throw new Error('curate-stages: stage01 is not a one-box intro stage');
   }
+  for (let i = 7; i < 10; i += 1) {
+    if (finalStages[i].metrics.maxPhiBarrier < 1) {
+      throw new Error(`curate-stages: stage${String(i + 1).padStart(2, '0')} maxPhiBarrier < 1`);
+    }
+  }
   return finalStages;
 }
 
 function compareCandidate(a, b) {
-  return a.minMoves - b.minMoves
-    || b.boxSwitches - a.boxSwitches
+  return a.score - b.score
+    || a.metrics.minPushes - b.metrics.minPushes
+    || b.metrics.boxChanges - a.metrics.boxChanges
+    || b.metrics.maxPhiBarrier - a.metrics.maxPhiBarrier
     || a.board.boxes.size - b.board.boxes.size
     || a.board.width - b.board.width
     || a.board.height - b.board.height
     || a.seed - b.seed
     || a.params.pullSteps - b.params.pullSteps
     || compareOrdinal(a.text, b.text);
+}
+
+function spreadPick(pool, count) {
+  if (count <= 0) {
+    return [];
+  }
+  if (pool.length < count) {
+    return pool.slice();
+  }
+  const picks = [];
+  const used = new Set();
+  for (let i = 0; i < count; i += 1) {
+    const target = count === 1 ? pool.length - 1 : Math.round((i * (pool.length - 1)) / (count - 1));
+    let index = target;
+    while (index < pool.length && used.has(index)) {
+      index += 1;
+    }
+    if (index >= pool.length) {
+      index = target - 1;
+      while (index >= 0 && used.has(index)) {
+        index -= 1;
+      }
+    }
+    if (index >= 0) {
+      used.add(index);
+      picks.push(pool[index]);
+    }
+  }
+  return picks;
+}
+
+function scoreMetrics(metrics) {
+  return SCORE_WEIGHTS.minPushes * metrics.minPushes
+    + SCORE_WEIGHTS.boxChanges * metrics.boxChanges
+    + SCORE_WEIGHTS.maxPhiBarrier * metrics.maxPhiBarrier
+    - SCORE_WEIGHTS.ratioPenalty * Math.max(0, metrics.movesPushesRatio - SCORE_WEIGHTS.ratioPenaltyThreshold);
 }
 
 function compareOrdinal(a, b) {
@@ -166,6 +224,8 @@ function renderStages(stages) {
     name: ${JSON.stringify(`Stage ${index + 1}`)},
     text: ${JSON.stringify(stage.text)},
     minMoves: ${stage.minMoves},
+    metrics: ${JSON.stringify(renderedMetrics(stage))},
+    policy: ${JSON.stringify(stage.policy)},
     seed: ${stage.seed},
     params: ${JSON.stringify(stage.params)},
   }`;
@@ -181,16 +241,30 @@ ${entries},
 `;
 }
 
+function renderedMetrics(stage) {
+  return {
+    minPushes: stage.metrics.minPushes,
+    boxChanges: stage.metrics.boxChanges,
+    maxPhiBarrier: stage.metrics.maxPhiBarrier,
+    movesPushesRatio: roundMetric(stage.metrics.movesPushesRatio),
+    score: roundMetric(stage.score),
+  };
+}
+
+function roundMetric(value) {
+  return Math.round(value * 1000) / 1000;
+}
+
 function printSummary(candidates, selected, failures, stats) {
   console.log('qgb stage curation');
   console.log(`candidates=${candidates.length} failures=${failures} selected=${selected.length}`);
   printLayerStats(stats);
-  console.log('id      moves boxes size   seed       attempt');
-  console.log('------  ----- ----- ------ ---------- -------');
+  console.log('id      pushes changes phi ratio score policy         moves boxes size   seed       attempt');
+  console.log('------  ------ ------- --- ----- ----- -------------- ----- ----- ------ ---------- -------');
   selected.forEach((stage, index) => {
     const id = `stage${String(index + 1).padStart(2, '0')}`;
     const size = `${stage.board.width}x${stage.board.height}`;
-    console.log(`${id}  ${pad(stage.minMoves, 5)} ${pad(stage.board.boxes.size, 5)} ${pad(size, 6)} ${pad(stage.seed, 10)} ${pad(stage.attempt, 7)}`);
+    console.log(`${id}  ${pad(stage.metrics.minPushes, 6)} ${pad(stage.metrics.boxChanges, 7)} ${pad(stage.metrics.maxPhiBarrier, 3)} ${pad(roundMetric(stage.metrics.movesPushesRatio), 5)} ${pad(roundMetric(stage.score), 5)} ${padRight(stage.policy, 14)} ${pad(stage.minMoves, 5)} ${pad(stage.board.boxes.size, 5)} ${pad(size, 6)} ${pad(stage.seed, 10)} ${pad(stage.attempt, 7)}`);
   });
 }
 
@@ -198,12 +272,16 @@ function printLayerStats(stats) {
   console.log('layer generated qualityPass generatorErrors params');
   console.log('----- --------- ----------- --------------- ------------------------------');
   stats.forEach((row, index) => {
-    const layer = PARAM_LAYERS[index];
-    const params = `${layer.width}x${layer.height} boxes=${layer.boxCount} pullSteps=${layer.pullSteps} floor=${layer.minMovesFloor} wallDensity=${layer.wallDensity ?? 0.16}`;
+    const { seedIndexes, ...layer } = PARAM_LAYERS[index];
+    const params = `${layer.width}x${layer.height} boxes=${layer.boxCount} pullSteps=${layer.pullSteps} pushFloor=${layer.minPushesFloor} wallDensity=${layer.wallDensity ?? 0.16} policy=${layer.goalClustering ? 'goal-clustered' : 'scattered'}`;
     console.log(`${pad(index, 5)} ${pad(row.generated, 9)} ${pad(row.qualityPass, 11)} ${pad(row.generatorErrors, 15)} ${params}`);
   });
 }
 
 function pad(value, width) {
   return String(value).padStart(width, ' ');
+}
+
+function padRight(value, width) {
+  return String(value).padEnd(width, ' ');
 }

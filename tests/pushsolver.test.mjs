@@ -131,7 +131,7 @@ test('P-04: pushSequence length matches minPushes and pushed moves in solution',
 });
 
 test('P-05/P-06: fixed generated boards agree with move-BFS solvability and bounds', () => {
-  const params = { ...DIFFICULTY_PRESETS.easy, minMovesFloor: 0, maxAttempts: 2000 };
+  const params = { ...DIFFICULTY_PRESETS.easy, minPushesFloor: 0, maxAttempts: 2000 };
   const samples = [];
   for (let i = 0; i < 20; i += 1) {
     const stage = generateStage({ seed: 0x0ddba5e0 + i, ...params });
