@@ -44,6 +44,7 @@ let clearPreviousBest = null;
 let clearOverlayVisible = false;
 let clearOverlayTimer = null;
 let replay = null;
+let replayDom = null;
 let errorMessage = '';
 let storageNoticeShown = false;
 const playedRandomSeeds = new Map(Object.keys(DIFFICULTY_PRESETS).map((difficulty) => [difficulty, new Set()]));
@@ -249,6 +250,7 @@ function randomStageState(difficulty, entry, generated) {
 
 function renderGame() {
   screen = 'game';
+  replayDom = null;
   const record = currentStageRecord();
   const best = record?.bestMoves ?? null;
   const showClear = clearOverlayVisible && game.won && !replay;
@@ -269,6 +271,9 @@ function gameView(best) {
   const boardWrap = document.createElement('div');
   boardWrap.className = 'board-wrap';
   boardWrap.append(renderBoard(game.board));
+  if (replayDom) {
+    replayDom.boardWrap = boardWrap;
+  }
 
   const side = document.createElement('aside');
   side.append(ticket(best));
@@ -312,7 +317,11 @@ function ticket(best) {
   const lines = document.createElement('div');
   lines.className = 'ticket-lines';
   lines.append(ticketRow('STAGE', currentStage.name));
-  lines.append(ticketRow('MOVES', String(game.moves)));
+  const movesRow = ticketRow('MOVES', String(game.moves));
+  lines.append(movesRow);
+  if (replayDom) {
+    replayDom.movesText = movesRow.children[1];
+  }
   lines.append(ticketRow('MIN', String(currentStage.minMoves)));
   lines.append(ticketRow('BEST', best === null ? '-' : String(best)));
   if (currentStageRecord()?.solutionViewed) {
@@ -513,32 +522,57 @@ function scheduleReplay() {
     }
     game.move(replay.log[replay.index]);
     replay.index += 1;
-    renderGame();
+    renderReplayTick();
   }, replay.speed === 2 ? 130 : 260);
+}
+
+function renderReplayTick() {
+  // Keep the controls mounted while a pointer interaction is in progress.
+  if (!replay || !replayDom?.boardWrap || !replayDom.counter || !replayDom.movesText) {
+    return;
+  }
+  replayDom.boardWrap.replaceChildren(renderBoard(game.board));
+  replayDom.counter.textContent = replayProgressText();
+  replayDom.movesText.textContent = String(game.moves);
 }
 
 function replayBanner() {
   const banner = document.createElement('div');
   banner.className = 'replay-banner';
-  banner.append(textEl('div', '', `リプレイ再生中 ${replay.index}/${replay.log.length}`));
-  const controls = actions([
-    [replay.speed === 1 ? '2倍' : '等速', () => {
-      const nextSpeed = replay.speed === 1 ? 2 : 1;
-      stopReplay(false);
-      replay = { ...replay, speed: nextSpeed, timer: null };
-      scheduleReplay();
-      renderGame();
-    }],
-    ['中断', () => {
-      stopReplay();
-      cancelClearOverlayDelay();
-      game = new Game(currentStage.initialBoard);
-      clearOverlayVisible = false;
-      renderGame();
-    }],
-  ]);
+  const counter = textEl('div', '', replayProgressText());
+  const speedButton = document.createElement('button');
+  speedButton.textContent = replaySpeedLabel();
+  speedButton.addEventListener('click', () => {
+    const nextSpeed = replay.speed === 1 ? 2 : 1;
+    stopReplay(false);
+    replay = { ...replay, speed: nextSpeed, timer: null };
+    scheduleReplay();
+    speedButton.textContent = replaySpeedLabel();
+  });
+  const stopButton = document.createElement('button');
+  stopButton.textContent = '中断';
+  stopButton.addEventListener('click', () => {
+    stopReplay();
+    cancelClearOverlayDelay();
+    game = new Game(currentStage.initialBoard);
+    clearOverlayVisible = false;
+    renderGame();
+  });
+  const controls = document.createElement('div');
+  controls.className = 'actions';
+  controls.append(speedButton, stopButton);
+  replayDom = { boardWrap: null, counter, movesText: null, speedButton };
+  banner.append(counter);
   banner.append(controls);
   return banner;
+}
+
+function replayProgressText() {
+  return `リプレイ再生中 ${replay.index}/${replay.log.length}`;
+}
+
+function replaySpeedLabel() {
+  return replay.speed === 1 ? '2倍' : '等速';
 }
 
 function stopReplay(clear = true) {

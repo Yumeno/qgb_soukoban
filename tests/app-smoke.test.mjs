@@ -1,5 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { parseBoard, serializeBoard } from '../src/core/board.js';
+import { Game } from '../src/core/game.js';
+import { STAGES } from '../src/core/stages.js';
 
 class FakeElement {
   constructor(tagName) {
@@ -51,6 +54,40 @@ function click(element) {
   element.dispatchEvent({ type: 'click', stopPropagation() {} });
 }
 
+function boardContents(root) {
+  const tileByClass = {
+    'cell-wall': '#',
+    'cell-floor': ' ',
+    'cell-player': '@',
+    'cell-box': '$',
+    'cell-goal': '.',
+    'cell-box-goal': '*',
+    'cell-player-goal': '+',
+  };
+  const board = findByClass(root, 'board-grid');
+  return board.children.map((cell) => tileByClass[cell.className.split(' ').at(-1)]).join('');
+}
+
+function ticketMoves(root) {
+  const movesRow = walk(root).find((node) => node.className === 'ticket-row'
+    && node.children[0]?.textContent === 'MOVES:');
+  return movesRow?.children[1]?.textContent;
+}
+
+function assertReplayDisplay(app, expectedGame, replayIndex, replayLength) {
+  assert.equal(ticketMoves(app), String(expectedGame.moves), 'MOVES must match the replay state');
+  assert.equal(
+    findByClass(app, 'replay-banner').children[0].textContent,
+    `リプレイ再生中 ${replayIndex}/${replayLength}`,
+    'replay counter must match the replay state',
+  );
+  assert.equal(
+    boardContents(app),
+    serializeBoard(expectedGame.board).replaceAll('\n', ''),
+    'board must match the replay state',
+  );
+}
+
 function keydown(listener, key) {
   listener({ type: 'keydown', key, preventDefault() {} });
 }
@@ -59,7 +96,7 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function installFakeDom(progressJson = null) {
+function installFakeDom(progressJson = null, timerApi = { setInterval, clearInterval }) {
   const app = new FakeElement('div');
   const windowListeners = new Map();
   globalThis.document = {
@@ -75,7 +112,7 @@ function installFakeDom(progressJson = null) {
     addEventListener(type, listener) {
       windowListeners.set(type, listener);
     },
-    clearInterval,
+    clearInterval: timerApi.clearInterval,
     clearTimeout,
     confirm() {
       return true;
@@ -86,16 +123,80 @@ function installFakeDom(progressJson = null) {
       },
       setItem() {},
     },
-    setInterval,
+    setInterval: timerApi.setInterval,
     setTimeout,
   };
   return { app, windowListeners };
+}
+
+function installManualIntervals() {
+  const callbacks = new Map();
+  let nextId = 1;
+  return {
+    setInterval(callback) {
+      const id = nextId;
+      nextId += 1;
+      callbacks.set(id, callback);
+      return id;
+    },
+    clearInterval(id) {
+      callbacks.delete(id);
+    },
+    tick() {
+      for (const callback of [...callbacks.values()]) {
+        callback();
+      }
+    },
+  };
 }
 
 test('UI entry app.js can be dynamically imported', async () => {
   installFakeDom();
 
   await import('../src/ui/app.js?smoke-test');
+});
+
+test('R-07: replay ticks preserve equivalent display and controls across resize', async () => {
+  const timers = installManualIntervals();
+  const { app, windowListeners } = installFakeDom(null, timers);
+  await import('../src/ui/app.js?replay-control-identity');
+
+  click(findByClass(app, 'stage-card'));
+  const actionGroups = walk(app).filter((node) => node.className === 'actions');
+  click(actionGroups.at(-1).children.at(-1));
+
+  const expectedGame = new Game(parseBoard(STAGES[0].text));
+  const replayLog = STAGES[0].optimalSolution;
+  assertReplayDisplay(app, expectedGame, 0, replayLog.length);
+
+  timers.tick();
+  expectedGame.move(replayLog[0]);
+  assertReplayDisplay(app, expectedGame, 1, replayLog.length);
+
+  windowListeners.get('resize')();
+  assertReplayDisplay(app, expectedGame, 1, replayLog.length);
+
+  const banner = findByClass(app, 'replay-banner');
+  const controls = banner.children.at(-1);
+  const speedButton = controls.children[0];
+  const stopButton = controls.children[1];
+
+  timers.tick();
+  expectedGame.move(replayLog[1]);
+  assertReplayDisplay(app, expectedGame, 2, replayLog.length);
+  assert.strictEqual(findByClass(app, 'replay-banner').children.at(-1).children[0], speedButton);
+  assert.strictEqual(findByClass(app, 'replay-banner').children.at(-1).children[1], stopButton);
+
+  const speedLabel = speedButton.textContent;
+  click(speedButton);
+  assert.notEqual(speedButton.textContent, speedLabel, 'speed switch must update immediately');
+  assert.strictEqual(findByClass(app, 'replay-banner').children.at(-1).children[0], speedButton);
+
+  timers.tick();
+  expectedGame.move(replayLog[2]);
+  assertReplayDisplay(app, expectedGame, 3, replayLog.length);
+  click(stopButton);
+  assert.equal(findByClass(app, 'replay-banner'), undefined, 'stop must take effect immediately after a tick');
 });
 
 test('R-06: replay completion clear overlay can return to menu by Escape or its button', async (t) => {

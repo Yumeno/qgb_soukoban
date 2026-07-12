@@ -14,997 +14,1003 @@ TAP version 13
 # Subtest: UI entry app.js can be dynamically imported
 ok 1 - UI entry app.js can be dynamically imported
   ---
-  duration_ms: 37.6667
+  duration_ms: 36.4052
+  type: 'test'
+  ...
+# Subtest: R-07: replay ticks preserve equivalent display and controls across resize
+ok 2 - R-07: replay ticks preserve equivalent display and controls across resize
+  ---
+  duration_ms: 15.7594
   type: 'test'
   ...
 # Subtest: R-06: replay completion clear overlay can return to menu by Escape or its button
     # Subtest: Escape
     ok 1 - Escape
       ---
-      duration_ms: 2170.1058
+      duration_ms: 2171.5006
       type: 'test'
       ...
     # Subtest: button
     ok 2 - button
       ---
-      duration_ms: 2163.8575
+      duration_ms: 2166.6872
       type: 'test'
       ...
     1..2
-ok 2 - R-06: replay completion clear overlay can return to menu by Escape or its button
+ok 3 - R-06: replay completion clear overlay can return to menu by Escape or its button
   ---
-  duration_ms: 4335.1072
+  duration_ms: 4339.0183
   type: 'test'
   ...
 # Subtest: B-01: パース→シリアライズの往復が元の文字列と一致する
-ok 3 - B-01: パース→シリアライズの往復が元の文字列と一致する
+ok 4 - B-01: パース→シリアライズの往復が元の文字列と一致する
   ---
-  duration_ms: 2.573
+  duration_ms: 2.4
   type: 'test'
   ...
 # Subtest: B-02: + と * が正しくゴール集合と動体に分離される
-ok 4 - B-02: + と * が正しくゴール集合と動体に分離される
+ok 5 - B-02: + と * が正しくゴール集合と動体に分離される
   ---
-  duration_ms: 0.4962
+  duration_ms: 0.4092
   type: 'test'
   ...
 # Subtest: B-03: プレイヤーが0人だと validate() が no_player で不合格
-ok 5 - B-03: プレイヤーが0人だと validate() が no_player で不合格
+ok 6 - B-03: プレイヤーが0人だと validate() が no_player で不合格
   ---
-  duration_ms: 0.7836
+  duration_ms: 0.6744
   type: 'test'
   ...
 # Subtest: B-03: プレイヤーが2人だと validate() が multiple_players で不合格
-ok 6 - B-03: プレイヤーが2人だと validate() が multiple_players で不合格
+ok 7 - B-03: プレイヤーが2人だと validate() が multiple_players で不合格
   ---
-  duration_ms: 0.5713
+  duration_ms: 0.603
   type: 'test'
   ...
 # Subtest: B-04: 箱数とゴール数が不一致だと box_goal_mismatch で不合格
-ok 7 - B-04: 箱数とゴール数が不一致だと box_goal_mismatch で不合格
+ok 8 - B-04: 箱数とゴール数が不一致だと box_goal_mismatch で不合格
   ---
-  duration_ms: 0.3161
+  duration_ms: 0.4327
   type: 'test'
   ...
 # Subtest: B-04: 箱が0個だと no_boxes で不合格
-ok 8 - B-04: 箱が0個だと no_boxes で不合格
+ok 9 - B-04: 箱が0個だと no_boxes で不合格
   ---
-  duration_ms: 0.258
+  duration_ms: 0.353
   type: 'test'
   ...
 # Subtest: B-05: 壁で閉じていない盤面は not_enclosed で不合格
-ok 9 - B-05: 壁で閉じていない盤面は not_enclosed で不合格
+ok 10 - B-05: 壁で閉じていない盤面は not_enclosed で不合格
   ---
-  duration_ms: 0.6704
+  duration_ms: 0.5446
   type: 'test'
   ...
 # Subtest: B-06: 不正文字を含む盤面は parseBoard が即エラーを投げる
-ok 10 - B-06: 不正文字を含む盤面は parseBoard が即エラーを投げる
+ok 11 - B-06: 不正文字を含む盤面は parseBoard が即エラーを投げる
   ---
-  duration_ms: 0.4938
+  duration_ms: 0.4904
   type: 'test'
   ...
 # Subtest: B-07: 開始時点で全箱がゴール上だと already_solved で不合格
-ok 11 - B-07: 開始時点で全箱がゴール上だと already_solved で不合格
+ok 12 - B-07: 開始時点で全箱がゴール上だと already_solved で不合格
   ---
-  duration_ms: 0.6106
+  duration_ms: 0.5591
   type: 'test'
   ...
 # Subtest: B-08: 行長不一致の盤面は右側を床でパディングして矩形化しパース成功する
-ok 12 - B-08: 行長不一致の盤面は右側を床でパディングして矩形化しパース成功する
+ok 13 - B-08: 行長不一致の盤面は右側を床でパディングして矩形化しパース成功する
   ---
-  duration_ms: 0.6219
+  duration_ms: 0.6433
   type: 'test'
   ...
 # Subtest: B-08: 空行を含む盤面は即エラー
-ok 13 - B-08: 空行を含む盤面は即エラー
+ok 14 - B-08: 空行を含む盤面は即エラー
   ---
-  duration_ms: 0.3012
+  duration_ms: 0.3441
   type: 'test'
   ...
 # Subtest: B-09: プレイヤーから到達不能な箱・ゴールは unreachable_entity で不合格
-ok 14 - B-09: プレイヤーから到達不能な箱・ゴールは unreachable_entity で不合格
+ok 15 - B-09: プレイヤーから到達不能な箱・ゴールは unreachable_entity で不合格
   ---
-  duration_ms: 0.4398
+  duration_ms: 0.3461
   type: 'test'
   ...
 # Subtest: B-09: 全ての箱・ゴールがプレイヤーから到達可能なら unreachable_entity は出ない
-ok 15 - B-09: 全ての箱・ゴールがプレイヤーから到達可能なら unreachable_entity は出ない
+ok 16 - B-09: 全ての箱・ゴールがプレイヤーから到達可能なら unreachable_entity は出ない
   ---
-  duration_ms: 0.2152
+  duration_ms: 0.1972
   type: 'test'
   ...
 # Subtest: buildResetConfirmation returns one step for clear-record reset
-ok 16 - buildResetConfirmation returns one step for clear-record reset
+ok 17 - buildResetConfirmation returns one step for clear-record reset
   ---
-  duration_ms: 1.6153
+  duration_ms: 1.6416
   type: 'test'
   ...
 # Subtest: buildResetConfirmation returns two destructive steps for all progress
-ok 17 - buildResetConfirmation returns two destructive steps for all progress
+ok 18 - buildResetConfirmation returns two destructive steps for all progress
   ---
-  duration_ms: 0.3656
+  duration_ms: 0.2863
   type: 'test'
   ...
 # Subtest: G-01: 床への移動で位置更新・moves+1・ログ追加
-ok 18 - G-01: 床への移動で位置更新・moves+1・ログ追加
+ok 19 - G-01: 床への移動で位置更新・moves+1・ログ追加
   ---
-  duration_ms: 2.4825
+  duration_ms: 2.0993
   type: 'test'
   ...
 # Subtest: G-02: 壁への移動は状態不変
-ok 19 - G-02: 壁への移動は状態不変
+ok 20 - G-02: 壁への移動は状態不変
   ---
-  duration_ms: 0.5221
+  duration_ms: 0.408
   type: 'test'
   ...
 # Subtest: G-03: 箱押しで箱・プレイヤー両方移動、moves+1
-ok 20 - G-03: 箱押しで箱・プレイヤー両方移動、moves+1
+ok 21 - G-03: 箱押しで箱・プレイヤー両方移動、moves+1
   ---
-  duration_ms: 0.4413
+  duration_ms: 0.3468
   type: 'test'
   ...
 # Subtest: G-04: 箱の先が壁の場合は押せず状態不変
-ok 21 - G-04: 箱の先が壁の場合は押せず状態不変
+ok 22 - G-04: 箱の先が壁の場合は押せず状態不変
   ---
-  duration_ms: 0.2615
+  duration_ms: 0.2385
   type: 'test'
   ...
 # Subtest: G-04: 箱の先が箱の場合は押せず状態不変
-ok 22 - G-04: 箱の先が箱の場合は押せず状態不変
+ok 23 - G-04: 箱の先が箱の場合は押せず状態不変
   ---
-  duration_ms: 0.3955
+  duration_ms: 0.3362
   type: 'test'
   ...
 # Subtest: G-05: 最後の箱をゴールに押すとwon=true、以降のmoveは無視
-ok 23 - G-05: 最後の箱をゴールに押すとwon=true、以降のmoveは無視
+ok 24 - G-05: 最後の箱をゴールに押すとwon=true、以降のmoveは無視
   ---
-  duration_ms: 0.2642
+  duration_ms: 0.2283
   type: 'test'
   ...
 # Subtest: G-06: undo 1回で直前状態に完全復帰
-ok 24 - G-06: undo 1回で直前状態に完全復帰
+ok 25 - G-06: undo 1回で直前状態に完全復帰
   ---
-  duration_ms: 0.5243
+  duration_ms: 0.3773
   type: 'test'
   ...
 # Subtest: G-07: undo多段(押しを含む複数手)で初期状態に完全一致
-ok 25 - G-07: undo多段(押しを含む複数手)で初期状態に完全一致
+ok 26 - G-07: undo多段(押しを含む複数手)で初期状態に完全一致
   ---
-  duration_ms: 1.5848
+  duration_ms: 1.0842
   type: 'test'
   ...
 # Subtest: G-08: 初期状態でのundoは不発(エラーにしない)
-ok 26 - G-08: 初期状態でのundoは不発(エラーにしない)
+ok 27 - G-08: 初期状態でのundoは不発(エラーにしない)
   ---
-  duration_ms: 0.9407
+  duration_ms: 0.5339
   type: 'test'
   ...
 # Subtest: G-09: リセットで初期状態に完全復帰、ログ空
-ok 27 - G-09: リセットで初期状態に完全復帰、ログ空
+ok 28 - G-09: リセットで初期状態に完全復帰、ログ空
   ---
-  duration_ms: 2.015
+  duration_ms: 0.9674
   type: 'test'
   ...
 # Subtest: G-10: 不発移動はログに記録されない
-ok 28 - G-10: 不発移動はログに記録されない
+ok 29 - G-10: 不発移動はログに記録されない
   ---
-  duration_ms: 0.3421
+  duration_ms: 0.3172
   type: 'test'
   ...
 # Subtest: G-11: 勝利後は move も undo も不発(状態不変)、reset のみ有効
-ok 29 - G-11: 勝利後は move も undo も不発(状態不変)、reset のみ有効
+ok 30 - G-11: 勝利後は move も undo も不発(状態不変)、reset のみ有効
   ---
-  duration_ms: 0.2221
+  duration_ms: 0.5015
   type: 'test'
   ...
 # Subtest: G-12: undo後に別の手を進めるとログは初期状態から現在状態への手順のみを保持する
-ok 30 - G-12: undo後に別の手を進めるとログは初期状態から現在状態への手順のみを保持する
+ok 31 - G-12: undo後に別の手を進めるとログは初期状態から現在状態への手順のみを保持する
   ---
-  duration_ms: 0.2772
+  duration_ms: 0.4258
   type: 'test'
   ...
 # Subtest: Game.board はスナップショットであり外部変更が内部状態に影響しない
-ok 31 - Game.board はスナップショットであり外部変更が内部状態に影響しない
+ok 32 - Game.board はスナップショットであり外部変更が内部状態に影響しない
   ---
-  duration_ms: 0.2212
+  duration_ms: 0.2996
   type: 'test'
   ...
 # Subtest: applyMoves: 不正文字を含む場合は適用前にTypeErrorを投げ、状態も変化しない
-ok 32 - applyMoves: 不正文字を含む場合は適用前にTypeErrorを投げ、状態も変化しない
+ok 33 - applyMoves: 不正文字を含む場合は適用前にTypeErrorを投げ、状態も変化しない
   ---
-  duration_ms: 0.6483
+  duration_ms: 1.9253
   type: 'test'
   ...
 # Subtest: applyMoves: 正常な文字列は順にmoveを適用する
-ok 33 - applyMoves: 正常な文字列は順にmoveを適用する
+ok 34 - applyMoves: 正常な文字列は順にmoveを適用する
   ---
-  duration_ms: 0.1799
+  duration_ms: 0.3536
   type: 'test'
   ...
 # Subtest: N-01: 固定シード5個 x 3プリセットは validateBoard 合格かつ solve で可解
-ok 34 - N-01: 固定シード5個 x 3プリセットは validateBoard 合格かつ solve で可解
+ok 35 - N-01: 固定シード5個 x 3プリセットは validateBoard 合格かつ solve で可解
   ---
-  duration_ms: 72463.9477
+  duration_ms: 62502.2151
   type: 'test'
   ...
 # Subtest: N-02: 同一 seed と同一パラメータは完全に同一結果を返す
-ok 35 - N-02: 同一 seed と同一パラメータは完全に同一結果を返す
+ok 36 - N-02: 同一 seed と同一パラメータは完全に同一結果を返す
   ---
-  duration_ms: 849.0711
+  duration_ms: 698.3901
   type: 'test'
   ...
 # Subtest: N-03: 異なる seed で少なくとも1面は異なる
-ok 36 - N-03: 異なる seed で少なくとも1面は異なる
+ok 37 - N-03: 異なる seed で少なくとも1面は異なる
   ---
-  duration_ms: 269.1043
+  duration_ms: 226.6313
   type: 'test'
   ...
 # Subtest: N-04: 各難易度は minPushesFloor を満たし、easy < normal < hard
-ok 37 - N-04: 各難易度は minPushesFloor を満たし、easy < normal < hard
+ok 38 - N-04: 各難易度は minPushesFloor を満たし、easy < normal < hard
   ---
-  duration_ms: 28362.6554
+  duration_ms: 23928.247
   type: 'test'
   ...
 # Subtest: N-05: 生成面の箱数と盤面サイズはパラメータ通り
-ok 38 - N-05: 生成面の箱数と盤面サイズはパラメータ通り
+ok 39 - N-05: 生成面の箱数と盤面サイズはパラメータ通り
   ---
-  duration_ms: 8.6541
+  duration_ms: 6.3251
   type: 'test'
   ...
 # Subtest: N-06: solution を applyMoves すると固定シード全件で勝利到達する
-ok 39 - N-06: solution を applyMoves すると固定シード全件で勝利到達する
+ok 40 - N-06: solution を applyMoves すると固定シード全件で勝利到達する
   ---
-  duration_ms: 68105.9401
+  duration_ms: 63011.9359
   type: 'test'
   ...
 # Subtest: N-07: 充足不能パラメータは maxAttempts 到達で GeneratorError
-ok 40 - N-07: 充足不能パラメータは maxAttempts 到達で GeneratorError
+ok 41 - N-07: 充足不能パラメータは maxAttempts 到達で GeneratorError
   ---
-  duration_ms: 1.3789
+  duration_ms: 0.8532
   type: 'test'
   ...
 # Subtest: N-08: all fixed-seed presets start with no box on a goal
-ok 41 - N-08: all fixed-seed presets start with no box on a goal
+ok 42 - N-08: all fixed-seed presets start with no box on a goal
   ---
-  duration_ms: 67570.9703
+  duration_ms: 63736.5439
   type: 'test'
   ...
 # Subtest: N-09: seed must be an unsigned 32-bit integer and embedded seeds remain valid
-ok 42 - N-09: seed must be an unsigned 32-bit integer and embedded seeds remain valid
+ok 43 - N-09: seed must be an unsigned 32-bit integer and embedded seeds remain valid
   ---
-  duration_ms: 1.0706
+  duration_ms: 1.8992
   type: 'test'
   ...
 # Subtest: N-10: motif layers generate valid solvable boards with their target structures
-ok 43 - N-10: motif layers generate valid solvable boards with their target structures
+ok 44 - N-10: motif layers generate valid solvable boards with their target structures
   ---
-  duration_ms: 3613.069
+  duration_ms: 3673.7458
   type: 'test'
   ...
 # Subtest: MT-01: straight one-box corridor has no box changes and no phi barrier
-ok 44 - MT-01: straight one-box corridor has no box changes and no phi barrier
+ok 45 - MT-01: straight one-box corridor has no box changes and no phi barrier
   ---
-  duration_ms: 6.1854
+  duration_ms: 5.5711
   type: 'test'
   ...
 # Subtest: MT-02: a necessary detour away from the goal creates the expected phi barrier
-ok 45 - MT-02: a necessary detour away from the goal creates the expected phi barrier
+ok 46 - MT-02: a necessary detour away from the goal creates the expected phi barrier
   ---
-  duration_ms: 3.807
+  duration_ms: 3.325
   type: 'test'
   ...
 # Subtest: MT-03: two boxes that must be alternated report box changes
-ok 46 - MT-03: two boxes that must be alternated report box changes
+ok 47 - MT-03: two boxes that must be alternated report box changes
   ---
-  duration_ms: 2.8741
+  duration_ms: 2.5306
   type: 'test'
   ...
 # Subtest: MT-04: moving a box off a goal is counted as a goal relodge
-ok 47 - MT-04: moving a box off a goal is counted as a goal relodge
+ok 48 - MT-04: moving a box off a goal is counted as a goal relodge
   ---
-  duration_ms: 7.9213
+  duration_ms: 6.5992
   type: 'test'
   ...
 # Subtest: MT-05: two-decomposition light separates independent and interleaved traces
-ok 48 - MT-05: two-decomposition light separates independent and interleaved traces
+ok 49 - MT-05: two-decomposition light separates independent and interleaved traces
   ---
-  duration_ms: 7.2989
+  duration_ms: 6.7228
   type: 'test'
   ...
 # Subtest: MT-06: metrics are deterministic for identical input
-ok 49 - MT-06: metrics are deterministic for identical input
+ok 50 - MT-06: metrics are deterministic for identical input
   ---
-  duration_ms: 223.7804
+  duration_ms: 201.6988
   type: 'test'
   ...
 # Subtest: MT-07: all embedded stages are solvable and all numeric fields are finite
-ok 50 - MT-07: all embedded stages are solvable and all numeric fields are finite
+ok 51 - MT-07: all embedded stages are solvable and all numeric fields are finite
   ---
-  duration_ms: 375.7479
+  duration_ms: 348.3024
   type: 'test'
   ...
 # Subtest: MT-08: spacious walking-heavy one-box board has a high moves/pushes ratio
-ok 51 - MT-08: spacious walking-heavy one-box board has a high moves/pushes ratio
+ok 52 - MT-08: spacious walking-heavy one-box board has a high moves/pushes ratio
   ---
-  duration_ms: 0.5693
+  duration_ms: 0.2844
   type: 'test'
   ...
 # Subtest: MD-01: independent two-box routes have no structural dependencies
-ok 52 - MD-01: independent two-box routes have no structural dependencies
+ok 53 - MD-01: independent two-box routes have no structural dependencies
   ---
-  duration_ms: 1.8744
+  duration_ms: 1.3868
   type: 'test'
   ...
 # Subtest: MD-02: plug box on the only route creates at least one dependency layer
-ok 53 - MD-02: plug box on the only route creates at least one dependency layer
+ok 54 - MD-02: plug box on the only route creates at least one dependency layer
   ---
-  duration_ms: 1.4948
+  duration_ms: 0.8905
   type: 'test'
   ...
 # Subtest: MD-03: chained dependencies require at least two peeling rounds
-ok 54 - MD-03: chained dependencies require at least two peeling rounds
+ok 55 - MD-03: chained dependencies require at least two peeling rounds
   ---
-  duration_ms: 2.3884
+  duration_ms: 1.6028
   type: 'test'
   ...
 # Subtest: MD-04: mutually blocking boxes are detected after solvability is confirmed
-ok 55 - MD-04: mutually blocking boxes are detected after solvability is confirmed
+ok 56 - MD-04: mutually blocking boxes are detected after solvability is confirmed
   ---
-  duration_ms: 1.1595
+  duration_ms: 0.9356
   type: 'test'
   ...
 # Subtest: MD-05: goal push degree distinguishes cornered and open goals
-ok 56 - MD-05: goal push degree distinguishes cornered and open goals
+ok 57 - MD-05: goal push degree distinguishes cornered and open goals
   ---
-  duration_ms: 1.1494
+  duration_ms: 0.497
   type: 'test'
   ...
 # Subtest: MD-06: a one-wide corridor has a fully forced push trace
-ok 57 - MD-06: a one-wide corridor has a fully forced push trace
+ok 58 - MD-06: a one-wide corridor has a fully forced push trace
   ---
-  duration_ms: 0.3124
+  duration_ms: 0.1467
   type: 'test'
   ...
 # Subtest: MD-07: embedded stages expose finite D4a metrics
-ok 58 - MD-07: embedded stages expose finite D4a metrics
+ok 59 - MD-07: embedded stages expose finite D4a metrics
   ---
-  duration_ms: 330.7296
+  duration_ms: 318.8616
   type: 'test'
   ...
 # Subtest: MD-08: D4a metrics are deterministic for identical input
-ok 59 - MD-08: D4a metrics are deterministic for identical input
+ok 60 - MD-08: D4a metrics are deterministic for identical input
   ---
-  duration_ms: 54.6462
+  duration_ms: 49.7249
   type: 'test'
   ...
 # Subtest: progress v2 serializes and deserializes stages plus random history
-ok 60 - progress v2 serializes and deserializes stages plus random history
+ok 61 - progress v2 serializes and deserializes stages plus random history
   ---
-  duration_ms: 5.363
+  duration_ms: 5.3499
   type: 'test'
   ...
 # Subtest: v1, broken JSON and unknown versions return initial v2 state
-ok 61 - v1, broken JSON and unknown versions return initial v2 state
+ok 62 - v1, broken JSON and unknown versions return initial v2 state
   ---
-  duration_ms: 0.8453
+  duration_ms: 0.5569
   type: 'test'
   ...
 # Subtest: boardHash is deterministic and distinguishes board text
-ok 62 - boardHash is deterministic and distinguishes board text
+ok 63 - boardHash is deterministic and distinguishes board text
   ---
-  duration_ms: 1.3132
+  duration_ms: 1.3301
   type: 'test'
   ...
 # Subtest: invalidateStaleRecords removes mismatched and unknown stage records
-ok 63 - invalidateStaleRecords removes mismatched and unknown stage records
+ok 64 - invalidateStaleRecords removes mismatched and unknown stage records
   ---
-  duration_ms: 1.4528
+  duration_ms: 1.6237
   type: 'test'
   ...
 # Subtest: resetClearRecords preserves solutionViewed and random history, clearAllProgress removes all
-ok 64 - resetClearRecords preserves solutionViewed and random history, clearAllProgress removes all
+ok 65 - resetClearRecords preserves solutionViewed and random history, clearAllProgress removes all
   ---
-  duration_ms: 2.6122
+  duration_ms: 2.6798
   type: 'test'
   ...
 # Subtest: mergeClearRecord and recordRandomPlay preserve solutionViewed
-ok 65 - mergeClearRecord and recordRandomPlay preserve solutionViewed
+ok 66 - mergeClearRecord and recordRandomPlay preserve solutionViewed
   ---
-  duration_ms: 1.0983
+  duration_ms: 1.0914
   type: 'test'
   ...
 # Subtest: filterValidRandomHistory keeps entries whose regenerated board hash matches
-ok 66 - filterValidRandomHistory keeps entries whose regenerated board hash matches
+ok 67 - filterValidRandomHistory keeps entries whose regenerated board hash matches
   ---
-  duration_ms: 1.565
+  duration_ms: 1.5697
   type: 'test'
   ...
 # Subtest: filterValidRandomHistory validates minMoves and optimal solution
-ok 67 - filterValidRandomHistory validates minMoves and optimal solution
+ok 68 - filterValidRandomHistory validates minMoves and optimal solution
   ---
-  duration_ms: 2.5942
+  duration_ms: 2.6835
   type: 'test'
   ...
 # Subtest: recordRandomPlay identity includes canonical params and board hash
-ok 68 - recordRandomPlay identity includes canonical params and board hash
+ok 69 - recordRandomPlay identity includes canonical params and board hash
   ---
-  duration_ms: 2.6618
+  duration_ms: 1.6088
   type: 'test'
   ...
 # Subtest: P-01: known tiny board 1 has minPushes=1 and movesOfSolution=1
-ok 69 - P-01: known tiny board 1 has minPushes=1 and movesOfSolution=1
+ok 70 - P-01: known tiny board 1 has minPushes=1 and movesOfSolution=1
   ---
-  duration_ms: 3.1964
+  duration_ms: 3.3019
   type: 'test'
   ...
 # Subtest: P-01: known tiny board 2 has minPushes=2 and movesOfSolution=3
-ok 70 - P-01: known tiny board 2 has minPushes=2 and movesOfSolution=3
+ok 71 - P-01: known tiny board 2 has minPushes=2 and movesOfSolution=3
   ---
-  duration_ms: 2.2675
+  duration_ms: 0.7181
   type: 'test'
   ...
 # Subtest: P-01: known tiny board 3 has minPushes=1 and movesOfSolution=2
-ok 71 - P-01: known tiny board 3 has minPushes=1 and movesOfSolution=2
+ok 72 - P-01: known tiny board 3 has minPushes=1 and movesOfSolution=2
   ---
-  duration_ms: 0.7501
+  duration_ms: 1.499
   type: 'test'
   ...
 # Subtest: P-02/P-06: unsolvable dead-square board returns solvable=false
-ok 72 - P-02/P-06: unsolvable dead-square board returns solvable=false
+ok 73 - P-02/P-06: unsolvable dead-square board returns solvable=false
   ---
-  duration_ms: 0.3776
+  duration_ms: 0.4141
   type: 'test'
   ...
 # Subtest: API: maxStates is an expansion limit and returns solvable=null on limit
-ok 73 - API: maxStates is an expansion limit and returns solvable=null on limit
+ok 74 - API: maxStates is an expansion limit and returns solvable=null on limit
   ---
-  duration_ms: 0.243
+  duration_ms: 0.4657
   type: 'test'
   ...
 # Subtest: P-03: representative solution is playable by Game.applyMoves
-ok 74 - P-03: representative solution is playable by Game.applyMoves
+ok 75 - P-03: representative solution is playable by Game.applyMoves
   ---
-  duration_ms: 0.9317
+  duration_ms: 1.2938
   type: 'test'
   ...
 # Subtest: P-04: pushSequence length matches minPushes and pushed moves in solution
-ok 75 - P-04: pushSequence length matches minPushes and pushed moves in solution
+ok 76 - P-04: pushSequence length matches minPushes and pushed moves in solution
   ---
-  duration_ms: 0.932
+  duration_ms: 1.2482
   type: 'test'
   ...
 # Subtest: P-05/P-06: fixed generated boards agree with move-BFS solvability and bounds
-ok 76 - P-05/P-06: fixed generated boards agree with move-BFS solvability and bounds
+ok 77 - P-05/P-06: fixed generated boards agree with move-BFS solvability and bounds
   ---
-  duration_ms: 42.8273
+  duration_ms: 39.6745
   type: 'test'
   ...
 # Subtest: P-07: solvePushes is deterministic for identical input
-ok 77 - P-07: solvePushes is deterministic for identical input
+ok 78 - P-07: solvePushes is deterministic for identical input
   ---
-  duration_ms: 2.2745
+  duration_ms: 2.1203
   type: 'test'
   ...
 # Subtest: P-08: canonical key normalizes player positions inside the same reachable component
-ok 78 - P-08: canonical key normalizes player positions inside the same reachable component
+ok 79 - P-08: canonical key normalizes player positions inside the same reachable component
   ---
-  duration_ms: 0.7904
+  duration_ms: 0.7646
   type: 'test'
   ...
 # Subtest: P-05 stats samples are available for completion report
-ok 79 - P-05 stats samples are available for completion report
+ok 80 - P-05 stats samples are available for completion report
   ---
-  duration_ms: 0.3139
+  duration_ms: 0.2963
   type: 'test'
   ...
 # Subtest: Q-01: 品質チェックは同一入力に対して同一判定を返す
-ok 80 - Q-01: 品質チェックは同一入力に対して同一判定を返す
+ok 81 - Q-01: 品質チェックは同一入力に対して同一判定を返す
   ---
-  duration_ms: 8.4819
+  duration_ms: 6.2399
   type: 'test'
   ...
 # Subtest: Q-04: countBoxSwitches counts pushed box identity changes only
-ok 81 - Q-04: countBoxSwitches counts pushed box identity changes only
+ok 82 - Q-04: countBoxSwitches counts pushed box identity changes only
   ---
-  duration_ms: 0.5261
+  duration_ms: 0.4757
   type: 'test'
   ...
 # Subtest: Q-02: 冗長な箱移動を含む解は検出し、含まない解は検出しない
-ok 82 - Q-02: 冗長な箱移動を含む解は検出し、含まない解は検出しない
+ok 83 - Q-02: 冗長な箱移動を含む解は検出し、含まない解は検出しない
   ---
-  duration_ms: 0.2995
+  duration_ms: 0.2753
   type: 'test'
   ...
 # Subtest: checkStageQuality は minMoves 不一致を reason で報告する
-ok 83 - checkStageQuality は minMoves 不一致を reason で報告する
+ok 84 - checkStageQuality は minMoves 不一致を reason で報告する
   ---
-  duration_ms: 0.5058
+  duration_ms: 0.4902
   type: 'test'
   ...
 # Subtest: checkStageQuality は冗長な箱移動を reason で報告する
-ok 84 - checkStageQuality は冗長な箱移動を reason で報告する
+ok 85 - checkStageQuality は冗長な箱移動を reason で報告する
   ---
-  duration_ms: 0.6763
+  duration_ms: 0.591
   type: 'test'
   ...
 # Subtest: Q-03: selected embedded stages satisfy curation invariants
-ok 85 - Q-03: selected embedded stages satisfy curation invariants
+ok 86 - Q-03: selected embedded stages satisfy curation invariants
   ---
-  duration_ms: 955.2785
+  duration_ms: 890.9653
   type: 'test'
   ...
 # Subtest: RK-01: rank boundaries cover each grade at threshold +/- 1
-ok 86 - RK-01: rank boundaries cover each grade at threshold +/- 1
+ok 87 - RK-01: rank boundaries cover each grade at threshold +/- 1
   ---
-  duration_ms: 3.8226
+  duration_ms: 2.5831
   type: 'test'
   ...
 # Subtest: RK-01: small minMoves use absolute relaxation for A and B
-ok 87 - RK-01: small minMoves use absolute relaxation for A and B
+ok 88 - RK-01: small minMoves use absolute relaxation for A and B
   ---
-  duration_ms: 0.5709
+  duration_ms: 0.5976
   type: 'test'
   ...
 # Subtest: RK-02: nextGrade points to the immediate higher grade limit
-ok 88 - RK-02: nextGrade points to the immediate higher grade limit
+ok 89 - RK-02: nextGrade points to the immediate higher grade limit
   ---
-  duration_ms: 0.3113
+  duration_ms: 0.3426
   type: 'test'
   ...
 # Subtest: RK-03: invalid input throws TypeError
-ok 89 - RK-03: invalid input throws TypeError
+ok 90 - RK-03: invalid input throws TypeError
   ---
-  duration_ms: 1.122
+  duration_ms: 1.0846
   type: 'test'
   ...
 # Subtest: RK-04: viewed solution caps perfect clear at A
-ok 90 - RK-04: viewed solution caps perfect clear at A
+ok 91 - RK-04: viewed solution caps perfect clear at A
   ---
-  duration_ms: 0.4909
+  duration_ms: 0.4614
   type: 'test'
   ...
 # Subtest: R-01: クリアまでのログをリセット後に適用すると勝利状態に到達し moves が一致する
-ok 91 - R-01: クリアまでのログをリセット後に適用すると勝利状態に到達し moves が一致する
+ok 92 - R-01: クリアまでのログをリセット後に適用すると勝利状態に到達し moves が一致する
   ---
-  duration_ms: 1.9113
+  duration_ms: 2.3142
   type: 'test'
   ...
 # Subtest: R-02: undoを挟んだプレイでもログは実効手順のみを保持し、適用で同一終局になる
-ok 92 - R-02: undoを挟んだプレイでもログは実効手順のみを保持し、適用で同一終局になる
+ok 93 - R-02: undoを挟んだプレイでもログは実効手順のみを保持し、適用で同一終局になる
   ---
-  duration_ms: 1.736
+  duration_ms: 1.5036
   type: 'test'
   ...
 # Subtest: R-03: 不正文字を含むリプレイ文字列を適用すると明示的にエラーになる
-ok 93 - R-03: 不正文字を含むリプレイ文字列を適用すると明示的にエラーになる
+ok 94 - R-03: 不正文字を含むリプレイ文字列を適用すると明示的にエラーになる
   ---
-  duration_ms: 0.7697
+  duration_ms: 0.7874
   type: 'test'
   ...
 # Subtest: SP-01: each difficulty has 50 pooled seeds
-ok 94 - SP-01: each difficulty has 50 pooled seeds
+ok 95 - SP-01: each difficulty has 50 pooled seeds
   ---
-  duration_ms: 2.5323
+  duration_ms: 2.0285
   type: 'test'
   ...
 # Subtest: SP-02: sampled entries regenerate and match baked metrics
-ok 95 - SP-02: sampled entries regenerate and match baked metrics
+ok 96 - SP-02: sampled entries regenerate and match baked metrics
   ---
-  duration_ms: 115619.3656
+  duration_ms: 98975.3368
   type: 'test'
   ...
 # Subtest: SP-03: pooled seeds are unique globally
-ok 96 - SP-03: pooled seeds are unique globally
+ok 97 - SP-03: pooled seeds are unique globally
   ---
-  duration_ms: 0.684
+  duration_ms: 0.5804
   type: 'test'
   ...
 # Subtest: SP-04: baked pool hash is deterministic
-ok 97 - SP-04: baked pool hash is deterministic
+ok 98 - SP-04: baked pool hash is deterministic
   ---
-  duration_ms: 2.1479
+  duration_ms: 1.4632
   type: 'test'
   ...
 # Subtest: SP-05: sampled entries have baked solver-derived optimalSolution
-ok 98 - SP-05: sampled entries have baked solver-derived optimalSolution
+ok 99 - SP-05: sampled entries have baked solver-derived optimalSolution
   ---
-  duration_ms: 108340.1872
+  duration_ms: 102269.4585
   type: 'test'
   ...
 # Subtest: S-01: 極小面1は手計算どおり最短1手
-ok 99 - S-01: 極小面1は手計算どおり最短1手
+ok 100 - S-01: 極小面1は手計算どおり最短1手
   ---
-  duration_ms: 3.757
+  duration_ms: 2.6446
   type: 'test'
   ...
 # Subtest: S-01: 極小面2は手計算どおり最短3手
-ok 100 - S-01: 極小面2は手計算どおり最短3手
+ok 101 - S-01: 極小面2は手計算どおり最短3手
   ---
-  duration_ms: 0.8067
+  duration_ms: 0.7598
   type: 'test'
   ...
 # Subtest: S-01: 極小面3は手計算どおり最短2手
-ok 101 - S-01: 極小面3は手計算どおり最短2手
+ok 102 - S-01: 極小面3は手計算どおり最短2手
   ---
-  duration_ms: 0.5077
+  duration_ms: 0.5043
   type: 'test'
   ...
 # Subtest: S-02: ゴールでない凹角に固定された箱は解なし
-ok 102 - S-02: ゴールでない凹角に固定された箱は解なし
+ok 103 - S-02: ゴールでない凹角に固定された箱は解なし
   ---
-  duration_ms: 0.2913
+  duration_ms: 0.3126
   type: 'test'
   ...
 # Subtest: S-03: solve の solution は Game.applyMoves で勝利状態に到達する
-ok 103 - S-03: solve の solution は Game.applyMoves で勝利状態に到達する
+ok 104 - S-03: solve の solution は Game.applyMoves で勝利状態に到達する
   ---
-  duration_ms: 1.197
+  duration_ms: 1.0805
   type: 'test'
   ...
 # Subtest: S-04: ゴール上の箱が凹角にあってもデッドロック扱いしない
-ok 104 - S-04: ゴール上の箱が凹角にあってもデッドロック扱いしない
+ok 105 - S-04: ゴール上の箱が凹角にあってもデッドロック扱いしない
   ---
-  duration_ms: 0.2894
+  duration_ms: 0.2831
   type: 'test'
   ...
 # Subtest: S-05: 展開上限を超えたら例外ではなく limit を返す
-ok 105 - S-05: 展開上限を超えたら例外ではなく limit を返す
+ok 106 - S-05: 展開上限を超えたら例外ではなく limit を返す
   ---
-  duration_ms: 0.4006
+  duration_ms: 1.3524
   type: 'test'
   ...
 # Subtest: S-05: maxStates は dequeue 数の境界で判定される
-ok 106 - S-05: maxStates は dequeue 数の境界で判定される
+ok 107 - S-05: maxStates は dequeue 数の境界で判定される
   ---
-  duration_ms: 0.3625
+  duration_ms: 0.3126
   type: 'test'
   ...
 # Subtest: S-06: 2箱の既知面は最短8手
-ok 107 - S-06: 2箱の既知面は最短8手
+ok 108 - S-06: 2箱の既知面は最短8手
   ---
-  duration_ms: 1.2267
+  duration_ms: 1.0605
   type: 'test'
   ...
 # Subtest: S-06: 4箱と内壁を含む決定的なやや重い盤面を既定上限内で解ける
-ok 108 - S-06: 4箱と内壁を含む決定的なやや重い盤面を既定上限内で解ける
+ok 109 - S-06: 4箱と内壁を含む決定的なやや重い盤面を既定上限内で解ける
   ---
-  duration_ms: 570.7018
+  duration_ms: 512.3396
   type: 'test'
   ...
 # Subtest: S-07: stateKey は箱集合の列挙順に依存しない
-ok 109 - S-07: stateKey は箱集合の列挙順に依存しない
+ok 110 - S-07: stateKey は箱集合の列挙順に依存しない
   ---
-  duration_ms: 0.4574
+  duration_ms: 0.2929
   type: 'test'
   ...
 # Subtest: S-07: isStaticCorner は左右端の列で行をまたがず盤外を壁相当として扱う
-ok 110 - S-07: isStaticCorner は左右端の列で行をまたがず盤外を壁相当として扱う
+ok 111 - S-07: isStaticCorner は左右端の列で行をまたがず盤外を壁相当として扱う
   ---
-  duration_ms: 0.2827
+  duration_ms: 0.1488
   type: 'test'
   ...
 # Subtest: S-08: legalMoves は Game.move の合法遷移集合と一致する
-ok 111 - S-08: legalMoves は Game.move の合法遷移集合と一致する
+ok 112 - S-08: legalMoves は Game.move の合法遷移集合と一致する
   ---
-  duration_ms: 7.9791
+  duration_ms: 5.2157
   type: 'test'
   ...
 # Subtest: T-01: all embedded stages pass validateBoard
-ok 112 - T-01: all embedded stages pass validateBoard
+ok 113 - T-01: all embedded stages pass validateBoard
   ---
-  duration_ms: 3.8862
+  duration_ms: 3.9069
   type: 'test'
   ...
 # Subtest: T-02/T-03: stage01 is solvable and minMoves is solver-derived
-ok 113 - T-02/T-03: stage01 is solvable and minMoves is solver-derived
+ok 114 - T-02/T-03: stage01 is solvable and minMoves is solver-derived
   ---
-  duration_ms: 1.2841
+  duration_ms: 1.7284
   type: 'test'
   ...
 # Subtest: T-02/T-03: stage02 is solvable and minMoves is solver-derived
-ok 114 - T-02/T-03: stage02 is solvable and minMoves is solver-derived
+ok 115 - T-02/T-03: stage02 is solvable and minMoves is solver-derived
   ---
-  duration_ms: 0.4326
+  duration_ms: 0.5033
   type: 'test'
   ...
 # Subtest: T-02/T-03: stage03 is solvable and minMoves is solver-derived
-ok 115 - T-02/T-03: stage03 is solvable and minMoves is solver-derived
+ok 116 - T-02/T-03: stage03 is solvable and minMoves is solver-derived
   ---
-  duration_ms: 4.8476
+  duration_ms: 5.4391
   type: 'test'
   ...
 # Subtest: T-02/T-03: stage04 is solvable and minMoves is solver-derived
-ok 116 - T-02/T-03: stage04 is solvable and minMoves is solver-derived
+ok 117 - T-02/T-03: stage04 is solvable and minMoves is solver-derived
   ---
-  duration_ms: 2.375
+  duration_ms: 2.3329
   type: 'test'
   ...
 # Subtest: T-02/T-03: stage05 is solvable and minMoves is solver-derived
-ok 117 - T-02/T-03: stage05 is solvable and minMoves is solver-derived
+ok 118 - T-02/T-03: stage05 is solvable and minMoves is solver-derived
   ---
-  duration_ms: 51.9193
+  duration_ms: 46.6334
   type: 'test'
   ...
 # Subtest: T-02/T-03: stage06 is solvable and minMoves is solver-derived
-ok 118 - T-02/T-03: stage06 is solvable and minMoves is solver-derived
+ok 119 - T-02/T-03: stage06 is solvable and minMoves is solver-derived
   ---
-  duration_ms: 332.0394
+  duration_ms: 271.1594
   type: 'test'
   ...
 # Subtest: T-02/T-03: stage07 is solvable and minMoves is solver-derived
-ok 119 - T-02/T-03: stage07 is solvable and minMoves is solver-derived
+ok 120 - T-02/T-03: stage07 is solvable and minMoves is solver-derived
   ---
-  duration_ms: 120.9023
+  duration_ms: 117.5549
   type: 'test'
   ...
 # Subtest: T-02/T-03: stage08 is solvable and minMoves is solver-derived
-ok 120 - T-02/T-03: stage08 is solvable and minMoves is solver-derived
+ok 121 - T-02/T-03: stage08 is solvable and minMoves is solver-derived
   ---
-  duration_ms: 92.354
+  duration_ms: 77.2107
   type: 'test'
   ...
 # Subtest: T-02/T-03: stage09 is solvable and minMoves is solver-derived
-ok 121 - T-02/T-03: stage09 is solvable and minMoves is solver-derived
+ok 122 - T-02/T-03: stage09 is solvable and minMoves is solver-derived
   ---
-  duration_ms: 101.4444
+  duration_ms: 99.216
   type: 'test'
   ...
 # Subtest: T-02/T-03: stage10 is solvable and minMoves is solver-derived
-ok 122 - T-02/T-03: stage10 is solvable and minMoves is solver-derived
+ok 123 - T-02/T-03: stage10 is solvable and minMoves is solver-derived
   ---
-  duration_ms: 99.035
+  duration_ms: 89.7801
   type: 'test'
   ...
 # Subtest: T-04: difficulty curve is monotonic by score
-ok 123 - T-04: difficulty curve is monotonic by score
+ok 124 - T-04: difficulty curve is monotonic by score
   ---
-  duration_ms: 0.382
+  duration_ms: 0.4856
   type: 'test'
   ...
 # Subtest: T-05: stage ids and names are unique
-ok 124 - T-05: stage ids and names are unique
+ok 125 - T-05: stage ids and names are unique
   ---
-  duration_ms: 0.122
+  duration_ms: 0.158
   type: 'test'
   ...
 # Subtest: T-06: all embedded stages stay within solver size limits
-ok 125 - T-06: all embedded stages stay within solver size limits
+ok 126 - T-06: all embedded stages stay within solver size limits
   ---
-  duration_ms: 0.2389
+  duration_ms: 0.3274
   type: 'test'
   ...
 # Subtest: T-07: no embedded stage starts with a box on a goal
-ok 126 - T-07: no embedded stage starts with a box on a goal
+ok 127 - T-07: no embedded stage starts with a box on a goal
   ---
-  duration_ms: 0.2942
+  duration_ms: 0.5933
   type: 'test'
   ...
 # Subtest: T-08: stage01 embedded metrics match recomputed metrics
-ok 127 - T-08: stage01 embedded metrics match recomputed metrics
+ok 128 - T-08: stage01 embedded metrics match recomputed metrics
   ---
-  duration_ms: 3.4072
+  duration_ms: 3.4012
   type: 'test'
   ...
 # Subtest: T-08: stage02 embedded metrics match recomputed metrics
-ok 128 - T-08: stage02 embedded metrics match recomputed metrics
+ok 129 - T-08: stage02 embedded metrics match recomputed metrics
   ---
-  duration_ms: 1.1287
+  duration_ms: 1.1455
   type: 'test'
   ...
 # Subtest: T-08: stage03 embedded metrics match recomputed metrics
-ok 129 - T-08: stage03 embedded metrics match recomputed metrics
+ok 130 - T-08: stage03 embedded metrics match recomputed metrics
   ---
-  duration_ms: 9.7877
+  duration_ms: 7.8384
   type: 'test'
   ...
 # Subtest: T-08: stage04 embedded metrics match recomputed metrics
-ok 130 - T-08: stage04 embedded metrics match recomputed metrics
+ok 131 - T-08: stage04 embedded metrics match recomputed metrics
   ---
-  duration_ms: 9.2606
+  duration_ms: 8.8177
   type: 'test'
   ...
 # Subtest: T-08: stage05 embedded metrics match recomputed metrics
-ok 131 - T-08: stage05 embedded metrics match recomputed metrics
+ok 132 - T-08: stage05 embedded metrics match recomputed metrics
   ---
-  duration_ms: 87.3366
+  duration_ms: 83.1602
   type: 'test'
   ...
 # Subtest: T-08: stage06 embedded metrics match recomputed metrics
-ok 132 - T-08: stage06 embedded metrics match recomputed metrics
+ok 133 - T-08: stage06 embedded metrics match recomputed metrics
   ---
-  duration_ms: 82.9814
+  duration_ms: 78.2437
   type: 'test'
   ...
 # Subtest: T-08: stage07 embedded metrics match recomputed metrics
-ok 133 - T-08: stage07 embedded metrics match recomputed metrics
+ok 134 - T-08: stage07 embedded metrics match recomputed metrics
   ---
-  duration_ms: 23.0567
+  duration_ms: 22.576
   type: 'test'
   ...
 # Subtest: T-08: stage08 embedded metrics match recomputed metrics
-ok 134 - T-08: stage08 embedded metrics match recomputed metrics
+ok 135 - T-08: stage08 embedded metrics match recomputed metrics
   ---
-  duration_ms: 79.323
+  duration_ms: 77.9792
   type: 'test'
   ...
 # Subtest: T-08: stage09 embedded metrics match recomputed metrics
-ok 135 - T-08: stage09 embedded metrics match recomputed metrics
+ok 136 - T-08: stage09 embedded metrics match recomputed metrics
   ---
-  duration_ms: 23.0628
+  duration_ms: 22.3226
   type: 'test'
   ...
 # Subtest: T-08: stage10 embedded metrics match recomputed metrics
-ok 136 - T-08: stage10 embedded metrics match recomputed metrics
+ok 137 - T-08: stage10 embedded metrics match recomputed metrics
   ---
-  duration_ms: 23.4032
+  duration_ms: 21.4098
   type: 'test'
   ...
 # Subtest: T-09: stage08-stage10 require maxPhiBarrier >= 1
-ok 137 - T-09: stage08-stage10 require maxPhiBarrier >= 1
+ok 138 - T-09: stage08-stage10 require maxPhiBarrier >= 1
   ---
-  duration_ms: 0.201
+  duration_ms: 0.19
   type: 'test'
   ...
 # Subtest: T-10: stage10 requires a strong dependency structure
-ok 138 - T-10: stage10 requires a strong dependency structure
+ok 139 - T-10: stage10 requires a strong dependency structure
   ---
-  duration_ms: 0.088
+  duration_ms: 0.0998
   type: 'test'
   ...
 # Subtest: T-11: embedded stages have unique structural signatures
-ok 139 - T-11: embedded stages have unique structural signatures
+ok 140 - T-11: embedded stages have unique structural signatures
   ---
-  duration_ms: 0.3157
+  duration_ms: 0.2888
   type: 'test'
   ...
 # Subtest: T-12: policies are dispersed
-ok 140 - T-12: policies are dispersed
+ok 141 - T-12: policies are dispersed
   ---
-  duration_ms: 0.4781
+  duration_ms: 0.3989
   type: 'test'
   ...
 # Subtest: embedded solver solution for stage01 replays through Game.applyMoves
-ok 141 - embedded solver solution for stage01 replays through Game.applyMoves
+ok 142 - embedded solver solution for stage01 replays through Game.applyMoves
   ---
-  duration_ms: 0.4803
+  duration_ms: 0.4276
   type: 'test'
   ...
 # Subtest: embedded solver solution for stage02 replays through Game.applyMoves
-ok 142 - embedded solver solution for stage02 replays through Game.applyMoves
+ok 143 - embedded solver solution for stage02 replays through Game.applyMoves
   ---
-  duration_ms: 0.1915
+  duration_ms: 0.1924
   type: 'test'
   ...
 # Subtest: embedded solver solution for stage03 replays through Game.applyMoves
-ok 143 - embedded solver solution for stage03 replays through Game.applyMoves
+ok 144 - embedded solver solution for stage03 replays through Game.applyMoves
   ---
-  duration_ms: 0.8064
+  duration_ms: 0.7635
   type: 'test'
   ...
 # Subtest: embedded solver solution for stage04 replays through Game.applyMoves
-ok 144 - embedded solver solution for stage04 replays through Game.applyMoves
+ok 145 - embedded solver solution for stage04 replays through Game.applyMoves
   ---
-  duration_ms: 0.41
+  duration_ms: 0.3862
   type: 'test'
   ...
 # Subtest: embedded solver solution for stage05 replays through Game.applyMoves
-ok 145 - embedded solver solution for stage05 replays through Game.applyMoves
+ok 146 - embedded solver solution for stage05 replays through Game.applyMoves
   ---
-  duration_ms: 19.3925
+  duration_ms: 18.8658
   type: 'test'
   ...
 # Subtest: embedded solver solution for stage06 replays through Game.applyMoves
-ok 146 - embedded solver solution for stage06 replays through Game.applyMoves
+ok 147 - embedded solver solution for stage06 replays through Game.applyMoves
   ---
-  duration_ms: 233.6501
+  duration_ms: 218.4832
   type: 'test'
   ...
 # Subtest: embedded solver solution for stage07 replays through Game.applyMoves
-ok 147 - embedded solver solution for stage07 replays through Game.applyMoves
+ok 148 - embedded solver solution for stage07 replays through Game.applyMoves
   ---
-  duration_ms: 90.7138
+  duration_ms: 93.9946
   type: 'test'
   ...
 # Subtest: embedded solver solution for stage08 replays through Game.applyMoves
-ok 148 - embedded solver solution for stage08 replays through Game.applyMoves
+ok 149 - embedded solver solution for stage08 replays through Game.applyMoves
   ---
-  duration_ms: 58.8951
+  duration_ms: 67.0646
   type: 'test'
   ...
 # Subtest: embedded solver solution for stage09 replays through Game.applyMoves
-ok 149 - embedded solver solution for stage09 replays through Game.applyMoves
+ok 150 - embedded solver solution for stage09 replays through Game.applyMoves
   ---
-  duration_ms: 91.3505
+  duration_ms: 88.8362
   type: 'test'
   ...
 # Subtest: embedded solver solution for stage10 replays through Game.applyMoves
-ok 150 - embedded solver solution for stage10 replays through Game.applyMoves
+ok 151 - embedded solver solution for stage10 replays through Game.applyMoves
   ---
-  duration_ms: 88.9651
+  duration_ms: 80.6127
   type: 'test'
   ...
 # Subtest: T-13: stage01 baked optimalSolution is solver-derived shortest replay
-ok 151 - T-13: stage01 baked optimalSolution is solver-derived shortest replay
+ok 152 - T-13: stage01 baked optimalSolution is solver-derived shortest replay
   ---
-  duration_ms: 0.2861
+  duration_ms: 0.2501
   type: 'test'
   ...
 # Subtest: T-13: stage02 baked optimalSolution is solver-derived shortest replay
-ok 152 - T-13: stage02 baked optimalSolution is solver-derived shortest replay
+ok 153 - T-13: stage02 baked optimalSolution is solver-derived shortest replay
   ---
-  duration_ms: 0.1184
+  duration_ms: 0.0879
   type: 'test'
   ...
 # Subtest: T-13: stage03 baked optimalSolution is solver-derived shortest replay
-ok 153 - T-13: stage03 baked optimalSolution is solver-derived shortest replay
+ok 154 - T-13: stage03 baked optimalSolution is solver-derived shortest replay
   ---
-  duration_ms: 2.2868
+  duration_ms: 1.6737
   type: 'test'
   ...
 # Subtest: T-13: stage04 baked optimalSolution is solver-derived shortest replay
-ok 154 - T-13: stage04 baked optimalSolution is solver-derived shortest replay
+ok 155 - T-13: stage04 baked optimalSolution is solver-derived shortest replay
   ---
-  duration_ms: 0.458
+  duration_ms: 0.4037
   type: 'test'
   ...
 # Subtest: T-13: stage05 baked optimalSolution is solver-derived shortest replay
-ok 155 - T-13: stage05 baked optimalSolution is solver-derived shortest replay
+ok 156 - T-13: stage05 baked optimalSolution is solver-derived shortest replay
   ---
-  duration_ms: 16.7248
+  duration_ms: 16.1353
   type: 'test'
   ...
 # Subtest: T-13: stage06 baked optimalSolution is solver-derived shortest replay
-ok 156 - T-13: stage06 baked optimalSolution is solver-derived shortest replay
+ok 157 - T-13: stage06 baked optimalSolution is solver-derived shortest replay
   ---
-  duration_ms: 225.1919
+  duration_ms: 193.0232
   type: 'test'
   ...
 # Subtest: T-13: stage07 baked optimalSolution is solver-derived shortest replay
-ok 157 - T-13: stage07 baked optimalSolution is solver-derived shortest replay
+ok 158 - T-13: stage07 baked optimalSolution is solver-derived shortest replay
   ---
-  duration_ms: 108.8566
+  duration_ms: 91.0667
   type: 'test'
   ...
 # Subtest: T-13: stage08 baked optimalSolution is solver-derived shortest replay
-ok 158 - T-13: stage08 baked optimalSolution is solver-derived shortest replay
+ok 159 - T-13: stage08 baked optimalSolution is solver-derived shortest replay
   ---
-  duration_ms: 56.5445
+  duration_ms: 49.341
   type: 'test'
   ...
 # Subtest: T-13: stage09 baked optimalSolution is solver-derived shortest replay
-ok 159 - T-13: stage09 baked optimalSolution is solver-derived shortest replay
+ok 160 - T-13: stage09 baked optimalSolution is solver-derived shortest replay
   ---
-  duration_ms: 96.7593
+  duration_ms: 75.6972
   type: 'test'
   ...
 # Subtest: T-13: stage10 baked optimalSolution is solver-derived shortest replay
-ok 160 - T-13: stage10 baked optimalSolution is solver-derived shortest replay
+ok 161 - T-13: stage10 baked optimalSolution is solver-derived shortest replay
   ---
-  duration_ms: 88.7034
+  duration_ms: 78.5618
   type: 'test'
   ...
 # Subtest: storage uses v2 key and ignores v1 key
-ok 161 - storage uses v2 key and ignores v1 key
+ok 162 - storage uses v2 key and ignores v1 key
   ---
-  duration_ms: 3.2303
+  duration_ms: 3.1749
   type: 'test'
   ...
 # Subtest: saveProgress reports setItem failure and preserves existing stored data
-ok 162 - saveProgress reports setItem failure and preserves existing stored data
+ok 163 - saveProgress reports setItem failure and preserves existing stored data
   ---
-  duration_ms: 2.3506
+  duration_ms: 2.1998
   type: 'test'
   ...
-1..162
-# tests 164
+1..163
+# tests 165
 # suites 0
-# pass 164
+# pass 165
 # fail 0
 # cancelled 0
 # skipped 0
 # todo 0
-# duration_ms 241411.5446
+# duration_ms 217954.5029
 
 stderr (full):
 
