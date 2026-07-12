@@ -2,6 +2,9 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { parseBoard, serializeBoard } from '../src/core/board.js';
 import { Game } from '../src/core/game.js';
+import { generateStage } from '../src/core/generator.js';
+import { boardHash } from '../src/core/progress.js';
+import { SEED_POOLS } from '../src/core/seedpools.js';
 import { STAGES } from '../src/core/stages.js';
 
 class FakeElement {
@@ -72,6 +75,12 @@ function ticketMoves(root) {
   const movesRow = walk(root).find((node) => node.className === 'ticket-row'
     && node.children[0]?.textContent === 'MOVES:');
   return movesRow?.children[1]?.textContent;
+}
+
+function ticketValue(root, label) {
+  const row = walk(root).find((node) => node.className === 'ticket-row'
+    && node.children[0]?.textContent === `${label}:`);
+  return row?.children[1]?.textContent;
 }
 
 function assertReplayDisplay(app, expectedGame, replayIndex, replayLength) {
@@ -154,6 +163,49 @@ test('UI entry app.js can be dynamically imported', async () => {
   installFakeDom();
 
   await import('../src/ui/app.js?smoke-test');
+});
+
+test('ランダム履歴は BEST/MIN を表示し、再挑戦中の伝票にも MIN を表示する', async () => {
+  const entry = SEED_POOLS.easy[0];
+  const generated = generateStage({ ...entry.params, seed: entry.seed });
+  const text = serializeBoard(generated.board);
+  const uncleared = SEED_POOLS.easy[1];
+  const unclearedBoard = serializeBoard(generateStage({ ...uncleared.params, seed: uncleared.seed }).board);
+  const { app } = installFakeDom(JSON.stringify({
+    version: 2,
+    stages: {},
+    randomHistory: [{
+      seed: entry.seed,
+      difficulty: 'easy',
+      params: entry.params,
+      boardHash: boardHash(text),
+      minMoves: entry.minMoves,
+      optimalSolution: entry.optimalSolution,
+      cleared: true,
+      bestMoves: entry.minMoves + 1,
+      replay: entry.optimalSolution,
+      clearedAt: '2026-07-12T00:00:00Z',
+      playedAt: '2026-07-12T00:00:00Z',
+    }, {
+      seed: uncleared.seed,
+      difficulty: 'easy',
+      params: uncleared.params,
+      boardHash: boardHash(unclearedBoard),
+      minMoves: uncleared.minMoves,
+      optimalSolution: uncleared.optimalSolution,
+      playedAt: '2026-07-11T00:00:00Z',
+    }],
+  }));
+  await import('../src/ui/app.js?random-history-min');
+
+  assert.ok(walk(app).some((node) => node.textContent === '遊んだ面は履歴に残り、再挑戦できます'));
+  const row = findByClass(app, 'history-row');
+  assert.equal(row.children[1].textContent, `BEST ${entry.minMoves + 1} / MIN ${entry.minMoves}`);
+  const unclearedRow = walk(app).filter((node) => node.className === 'history-row')[1];
+  assert.equal(unclearedRow.children[1].textContent, `MIN ${uncleared.minMoves}`);
+
+  click(row);
+  assert.equal(ticketValue(app, 'MIN'), String(entry.minMoves));
 });
 
 test('R-07: replay ticks preserve equivalent display and controls across resize', async () => {

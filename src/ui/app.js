@@ -103,7 +103,7 @@ function stageGrid() {
   random.append(cardIcon('🎲'));
   const copy = document.createElement('div');
   copy.append(textEl('div', 'card-title', 'ランダムモード'));
-  copy.append(textEl('div', 'card-meta', '記録は保存しません'));
+  copy.append(textEl('div', 'card-meta', '遊んだ面は履歴に残り、再挑戦できます'));
   random.append(copy);
   const controls = document.createElement('div');
   controls.className = 'random-controls';
@@ -363,9 +363,6 @@ function clearOverlay(previousBest) {
 }
 
 function bestResult(previousBest, moves) {
-  if (currentStage.kind === 'random') {
-    return '記録なし';
-  }
   if (previousBest === null) {
     return `${moves}`;
   }
@@ -725,7 +722,9 @@ function randomHistoryPanel() {
     const row = document.createElement('button');
     row.className = 'history-row';
     row.append(textEl('span', '', `${entry.difficulty} #${entry.seed}`));
-    row.append(textEl('span', '', entry.cleared ? `BEST ${entry.bestMoves}` : '未クリア'));
+    row.append(textEl('span', '', entry.cleared
+      ? `BEST ${entry.bestMoves} / MIN ${entry.minMoves}`
+      : `MIN ${entry.minMoves}`));
     if (entry.solutionViewed) {
       row.append(textEl('span', '', '模範視聴済み'));
     }
