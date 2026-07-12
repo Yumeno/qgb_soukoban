@@ -109,7 +109,10 @@ function normalizeParams(params) {
     motif: null,
     ...params,
   };
-  for (const key of ['seed', 'width', 'height', 'boxCount', 'pullSteps', 'maxAttempts', 'minMovesFloor', 'minPushesFloor', 'maxPhiBarrierFloor']) {
+  if (!Number.isInteger(normalized.seed) || normalized.seed < 0 || normalized.seed > 0xFFFFFFFF) {
+    throw new RangeError('generateStage: seed must be an unsigned 32-bit integer');
+  }
+  for (const key of ['width', 'height', 'boxCount', 'pullSteps', 'maxAttempts', 'minMovesFloor', 'minPushesFloor', 'maxPhiBarrierFloor']) {
     if (!Number.isInteger(normalized[key])) {
       throw new TypeError(`generateStage: ${key} must be an integer`);
     }

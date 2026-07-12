@@ -4,6 +4,8 @@ import { serializeBoard, validateBoard } from '../src/core/board.js';
 import { Game } from '../src/core/game.js';
 import { solve } from '../src/core/solver.js';
 import { computeStageMetrics } from '../src/core/metrics.js';
+import { SEED_POOLS } from '../src/core/seedpools.js';
+import { STAGES } from '../src/core/stages.js';
 import {
   DIFFICULTY_PRESETS,
   GeneratorError,
@@ -134,7 +136,24 @@ test('N-08: all fixed-seed presets start with no box on a goal', () => {
   }
 });
 
-test('N-09: motif layers generate valid solvable boards with their target structures', { timeout: 30000 }, () => {
+test('N-09: seed must be an unsigned 32-bit integer and embedded seeds remain valid', () => {
+  const params = DIFFICULTY_PRESETS.easy;
+  for (const seed of [2 ** 32, -1, 1.5, '42']) {
+    assert.throws(() => generateStage({ seed, ...params }), RangeError);
+  }
+
+  const seeds = [
+    ...STAGES.map((stage) => stage.seed),
+    ...Object.values(SEED_POOLS).flatMap((entries) => entries.map((entry) => entry.seed)),
+  ];
+  assert.equal(seeds.length, 160);
+  for (const seed of seeds) {
+    assert.equal(Number.isInteger(seed), true, `seed=${seed}`);
+    assert.ok(seed >= 0 && seed <= 0xFFFFFFFF, `seed=${seed}`);
+  }
+});
+
+test('N-10: motif layers generate valid solvable boards with their target structures', { timeout: 30000 }, () => {
   const cases = [
     {
       motif: 'packingRoom',
