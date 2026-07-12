@@ -62,10 +62,11 @@ function renderMenu() {
   stopReplay();
   game = null;
   currentStage = null;
+  const grid = stageGrid();
   app.replaceChildren(shell([
     topbar('WAREHOUSE-NIGHT', '倉庫番', 'ステージ選択'),
     errorMessage ? errorBox(errorMessage) : null,
-    stageGrid(),
+    grid,
   ]));
 }
 
@@ -123,7 +124,13 @@ function stageGrid() {
   random.append(controls);
   grid.append(random);
 
-  const history = randomHistoryPanel();
+  let history = null;
+  try {
+    history = randomHistoryPanel();
+  } catch {
+    // A malformed saved history must not prevent returning to the menu.
+    errorMessage = '一部のランダム履歴を表示できません。問題のある履歴は除外しました。';
+  }
   if (history) {
     grid.append(history);
   }
@@ -669,6 +676,9 @@ function randomHistoryPanel() {
       solutionWins: verifySolution(generated.board, entry.optimalSolution, entry.minMoves),
     };
   });
+  if (entries.length < progress.randomHistory.length) {
+    errorMessage = '一部のランダム履歴を表示できません。問題のある履歴は除外しました。';
+  }
   if (entries.length === 0) {
     return null;
   }

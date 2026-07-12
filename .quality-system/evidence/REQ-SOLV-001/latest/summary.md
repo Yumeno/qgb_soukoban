@@ -12,11 +12,11 @@
 |---|---|
 | REQ ID | REQ-SOLV-001 |
 | Phase | verify |
-| 実行日時 (UTC) | 2026-07-12T022238Z |
-| 実行日時 (RFC3339) | 2026-07-12T02:22:38Z |
+| 実行日時 (UTC) | 2026-07-12T031829Z |
+| 実行日時 (RFC3339) | 2026-07-12T03:18:29Z |
 | run_id | `r0001` |
 | Runner | qgb 0.1.5 |
-| run_dir | `.quality-system/artifacts/REQ-SOLV-001/runs/2026-07-12T022238Z-r0001` |
+| run_dir | `.quality-system/artifacts/REQ-SOLV-001/runs/2026-07-12T031829Z-r0001` |
 | curated_latest_dir | `.quality-system/evidence/REQ-SOLV-001/latest` |
 
 ## 段階別結果
