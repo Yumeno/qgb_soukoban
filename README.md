@@ -67,6 +67,15 @@ py -3 -m http.server 8000
 
 ## 開発者向け
 
+### 動作要件
+
+- **Node.js 22.23.4 以上**(テスト・生成ツール・品質ゲートの実行に使用。ゲーム本体の動作には不要)
+  - 対応範囲は `package.json` の `engines.node` が正: `^22.23.4 || ^24.22.1 || >=26.12.1`(各系列のセキュリティ修正版以上)
+  - 推奨バージョンは `.node-version`(`22.23.4`)。nvm / fnm / Volta / mise 等のバージョンマネージャで参照できる
+- npm 依存はないため `npm install` は不要(ビルド工程もなし)
+
+### コマンド
+
 - テスト: `node --test`(引数なし。`node --test tests/` のようなディレクトリ指定はこの環境では `ERR_MODULE_NOT_FOUND` になるため使わない。組込の自動検出 `tests/**/*.test.mjs` に任せる)
 - 品質ゲート: [qgb (quality-gate-builder)](https://github.com/Yumeno/Quality-gate-builder) で `.venv\Scripts\python.exe -m qgb run <REQ-ID> --yes` を実行し、証跡を `.quality-system/evidence/` に残す
 - 収録ステージの再生成: `node tools/curate-stages.mjs`(生成器の候補群から難易度カーブ・多様性制約を満たすものを選抜し `src/core/stages.js` を焼き直す。手で編集しない)
