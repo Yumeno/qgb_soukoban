@@ -1,1 +1,8 @@
-{"name":"qgb-soukoban","private":true,"type":"module"}
+{
+  "name": "qgb-soukoban",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "^22.23.4"
+  }
+}
